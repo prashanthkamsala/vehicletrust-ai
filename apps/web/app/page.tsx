@@ -1,3 +1,4 @@
+import { VehicleIntelligencePreview } from "@/components/vehicle/vehicle-intelligence-preview";
 import {
   ArrowRight,
   CarFront,
@@ -128,6 +129,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <VehicleIntelligencePreview />
 
       <section
         id="capabilities"
