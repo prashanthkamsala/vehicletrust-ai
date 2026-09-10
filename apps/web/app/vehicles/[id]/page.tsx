@@ -6,13 +6,16 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { TrustScoreBreakdown } from "@/components/vehicle/trust-score-breakdown";
 import { getDemoVehicle } from "@/lib/vehicle/mock-data";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
 };
 
-export default async function VehiclePage({ params }: VehiclePageProps) {
+export default async function VehiclePage({
+  params,
+}: VehiclePageProps) {
   const { id } = await params;
 
   if (id !== "demo-vehicle") {
@@ -98,7 +101,14 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
             </div>
 
             <div className="p-6 sm:p-8 lg:p-10">
-              <div className="flex items-end justify-between gap-4">
+              <TrustScoreBreakdown
+                baseScore={vehicle.trust.baseScore}
+                score={vehicle.trust.score}
+                factors={vehicle.trust.factors}
+                evidence={vehicle.evidence}
+              />
+
+              <div className="mt-10 flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
                     Evidence

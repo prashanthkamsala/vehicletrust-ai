@@ -1,4 +1,38 @@
-import type { VehicleIntelligence } from "./types";
+import type { TrustFactor, VehicleIntelligence } from "./types";
+import { createTrustAssessment } from "./trust/score";
+
+const demoTrustFactors: TrustFactor[] = [
+  {
+    id: "ownership-factor",
+    name: "Ownership history",
+    impact: "positive",
+    contribution: 20,
+    evidenceIds: ["ownership-history"],
+  },
+  {
+    id: "accident-factor",
+    name: "Accident history",
+    impact: "positive",
+    contribution: 25,
+    evidenceIds: ["accident-history"],
+  },
+  {
+    id: "service-factor",
+    name: "Service history",
+    impact: "negative",
+    contribution: -8,
+    evidenceIds: ["service-history"],
+  },
+  {
+    id: "mileage-factor",
+    name: "Mileage consistency",
+    impact: "positive",
+    contribution: 15,
+    evidenceIds: ["mileage-consistency"],
+  },
+];
+
+const demoBaseScore = 35;
 
 export const demoVehicle: VehicleIntelligence = {
   id: "demo-vehicle",
@@ -28,6 +62,7 @@ export const demoVehicle: VehicleIntelligence = {
       },
       observedAt: "2026-09-10",
     },
+
     {
       id: "accident-history",
       category: "Accident",
@@ -44,6 +79,7 @@ export const demoVehicle: VehicleIntelligence = {
       },
       observedAt: "2026-09-10",
     },
+
     {
       id: "service-history",
       category: "Maintenance",
@@ -60,6 +96,7 @@ export const demoVehicle: VehicleIntelligence = {
       },
       observedAt: "2026-09-10",
     },
+
     {
       id: "mileage-consistency",
       category: "Mileage",
@@ -94,47 +131,20 @@ export const demoVehicle: VehicleIntelligence = {
     },
   ],
 
-  trust: {
-    score: 87,
+  trust: createTrustAssessment({
+    baseScore: demoBaseScore,
     confidence: "high",
     assessment: "Low-risk profile",
-    factors: [
-      {
-        id: "ownership-factor",
-        name: "Ownership history",
-        impact: "positive",
-        contribution: 20,
-        evidenceIds: ["ownership-history"],
-      },
-      {
-        id: "accident-factor",
-        name: "Accident history",
-        impact: "positive",
-        contribution: 25,
-        evidenceIds: ["accident-history"],
-      },
-      {
-        id: "service-factor",
-        name: "Service history",
-        impact: "negative",
-        contribution: -8,
-        evidenceIds: ["service-history"],
-      },
-      {
-        id: "mileage-factor",
-        name: "Mileage consistency",
-        impact: "positive",
-        contribution: 15,
-        evidenceIds: ["mileage-consistency"],
-      },
-    ],
-  },
+    factors: demoTrustFactors,
+  }),
 
   ai: {
     summary:
       "The available evidence indicates a relatively low-risk vehicle.",
+
     reasoning:
       "Ownership and accident indicators look healthy. Mileage records are consistent, while the service history contains a signal that deserves additional verification.",
+
     recommendation:
       "Proceed with additional service-history verification before making a purchase decision.",
   },
