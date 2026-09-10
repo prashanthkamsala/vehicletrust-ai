@@ -1,35 +1,8 @@
-export type VehicleSignalStatus = "positive" | "warning" | "negative";
-
-export interface VehicleSignal {
-  id: string;
-  category: string;
-  label: string;
-  value: string;
-  status: VehicleSignalStatus;
-  explanation: string;
-}
-
-export interface VehicleIntelligence {
-  id: string;
-  identity: {
-    make: string;
-    model: string;
-    year: number;
-    registration: string;
-    vin: string;
-  };
-  trustScore: {
-    value: number;
-    confidence: string;
-    assessment: string;
-  };
-  signals: VehicleSignal[];
-  aiAssessment: string;
-  recommendation: string;
-}
+import type { VehicleIntelligence } from "./types";
 
 export const demoVehicle: VehicleIntelligence = {
   id: "demo-vehicle",
+
   identity: {
     make: "Toyota",
     model: "Camry",
@@ -37,49 +10,134 @@ export const demoVehicle: VehicleIntelligence = {
     registration: "KA 01 AB 1234",
     vin: "DEMO1TOYOTA2021CAMRY",
   },
-  trustScore: {
-    value: 87,
-    confidence: "High confidence",
-    assessment: "Low-risk profile",
-  },
-  signals: [
+
+  evidence: [
     {
-      id: "ownership",
+      id: "ownership-history",
       category: "Ownership",
-      label: "Ownership history",
+      title: "Ownership history",
       value: "Strong",
-      status: "positive",
-      explanation: "Ownership records show a consistent vehicle history.",
+      status: "verified",
+      confidence: "high",
+      explanation:
+        "Ownership records show a consistent vehicle history.",
+      source: {
+        id: "registration-records",
+        name: "Vehicle registration records",
+        type: "registration",
+      },
+      observedAt: "2026-09-10",
     },
     {
-      id: "accident",
+      id: "accident-history",
       category: "Accident",
-      label: "Accident signals",
+      title: "Accident signals",
       value: "Clear",
-      status: "positive",
-      explanation: "No significant accident indicators were identified.",
+      status: "verified",
+      confidence: "high",
+      explanation:
+        "No significant accident indicators were identified.",
+      source: {
+        id: "vehicle-history-records",
+        name: "Vehicle history records",
+        type: "vehicle_history",
+      },
+      observedAt: "2026-09-10",
     },
     {
-      id: "service",
+      id: "service-history",
       category: "Maintenance",
-      label: "Service history",
+      title: "Service history",
       value: "Review",
-      status: "warning",
-      explanation: "Some maintenance records require additional verification.",
+      status: "partially_verified",
+      confidence: "medium",
+      explanation:
+        "Some maintenance records require additional verification.",
+      source: {
+        id: "service-records",
+        name: "Service records",
+        type: "maintenance",
+      },
+      observedAt: "2026-09-10",
     },
     {
-      id: "mileage",
+      id: "mileage-consistency",
       category: "Mileage",
-      label: "Mileage consistency",
+      title: "Mileage consistency",
       value: "Verified",
-      status: "positive",
-      explanation: "Available mileage records appear consistent over time.",
+      status: "verified",
+      confidence: "high",
+      explanation:
+        "Available mileage records appear consistent over time.",
+      source: {
+        id: "mileage-records",
+        name: "Mileage records",
+        type: "vehicle_history",
+      },
+      observedAt: "2026-09-10",
     },
   ],
-  aiAssessment:
-    "The available signals indicate a relatively low-risk vehicle. Ownership and accident indicators look healthy, while the service history deserves additional verification before purchase.",
-  recommendation:
-    "Proceed with additional service-history verification before making a purchase decision.",
+
+  risks: [
+    {
+      id: "service-history-review",
+      category: "Maintenance",
+      title: "Service history requires review",
+      severity: "medium",
+      status: "needs_review",
+      confidence: "medium",
+      explanation:
+        "Some maintenance records are incomplete or require additional verification.",
+      evidenceIds: ["service-history"],
+      recommendedAction:
+        "Request the latest service invoices and maintenance records before purchase.",
+    },
+  ],
+
+  trust: {
+    score: 87,
+    confidence: "high",
+    assessment: "Low-risk profile",
+    factors: [
+      {
+        id: "ownership-factor",
+        name: "Ownership history",
+        impact: "positive",
+        contribution: 20,
+        evidenceIds: ["ownership-history"],
+      },
+      {
+        id: "accident-factor",
+        name: "Accident history",
+        impact: "positive",
+        contribution: 25,
+        evidenceIds: ["accident-history"],
+      },
+      {
+        id: "service-factor",
+        name: "Service history",
+        impact: "negative",
+        contribution: -8,
+        evidenceIds: ["service-history"],
+      },
+      {
+        id: "mileage-factor",
+        name: "Mileage consistency",
+        impact: "positive",
+        contribution: 15,
+        evidenceIds: ["mileage-consistency"],
+      },
+    ],
+  },
+
+  ai: {
+    summary:
+      "The available evidence indicates a relatively low-risk vehicle.",
+    reasoning:
+      "Ownership and accident indicators look healthy. Mileage records are consistent, while the service history contains a signal that deserves additional verification.",
+    recommendation:
+      "Proceed with additional service-history verification before making a purchase decision.",
+  },
 };
 
 export function getDemoVehicle(): VehicleIntelligence {

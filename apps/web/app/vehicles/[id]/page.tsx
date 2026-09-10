@@ -62,7 +62,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
               <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-medium text-zinc-700">
                 <ShieldCheck className="h-4 w-4" />
-                {vehicle.trustScore.assessment}
+                {vehicle.trust.assessment}
               </div>
             </div>
           </div>
@@ -77,7 +77,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
                 <div className="flex h-52 w-52 items-center justify-center rounded-full border-[12px] border-zinc-200">
                   <div className="text-center">
                     <div className="text-6xl font-semibold tracking-tight">
-                      {vehicle.trustScore.value}
+                      {vehicle.trust.score}
                     </div>
 
                     <div className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
@@ -85,7 +85,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
                     </div>
 
                     <div className="mt-3 text-xs text-zinc-500">
-                      {vehicle.trustScore.confidence}
+                      {vehicle.trust.confidence} confidence
                     </div>
                   </div>
                 </div>
@@ -93,7 +93,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
               <div className="mt-7 flex items-center justify-center gap-2 text-sm font-medium text-zinc-700">
                 <ShieldCheck className="h-4 w-4" />
-                {vehicle.trustScore.assessment}
+                {vehicle.trust.assessment}
               </div>
             </div>
 
@@ -101,7 +101,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
               <div className="flex items-end justify-between gap-4">
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                    Evidence signals
+                    Evidence
                   </p>
 
                   <h2 className="mt-2 text-2xl font-semibold tracking-tight">
@@ -110,22 +110,22 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
                 </div>
 
                 <span className="hidden text-sm text-zinc-500 sm:block">
-                  {vehicle.signals.length} signals evaluated
+                  {vehicle.evidence.length} evidence items
                 </span>
               </div>
 
               <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                {vehicle.signals.map((signal) => {
-                  const positive = signal.status === "positive";
+                {vehicle.evidence.map((evidence) => {
+                  const verified = evidence.status === "verified";
 
                   return (
                     <article
-                      key={signal.id}
+                      key={evidence.id}
                       className="rounded-2xl border border-zinc-200 p-5"
                     >
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex items-center gap-3">
-                          {positive ? (
+                          {verified ? (
                             <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
                           ) : (
                             <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
@@ -133,32 +133,100 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
 
                           <div>
                             <p className="text-sm font-semibold">
-                              {signal.label}
+                              {evidence.title}
                             </p>
 
                             <p className="mt-1 text-xs text-zinc-500">
-                              {signal.category}
+                              {evidence.category}
                             </p>
                           </div>
                         </div>
 
                         <span
                           className={
-                            positive
+                            verified
                               ? "text-sm font-semibold text-emerald-700"
                               : "text-sm font-semibold text-amber-700"
                           }
                         >
-                          {signal.value}
+                          {evidence.value}
                         </span>
                       </div>
 
                       <p className="mt-4 text-sm leading-6 text-zinc-600">
-                        {signal.explanation}
+                        {evidence.explanation}
                       </p>
+
+                      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500">
+                        <span>
+                          Confidence:{" "}
+                          <span className="font-medium text-zinc-700">
+                            {evidence.confidence}
+                          </span>
+                        </span>
+
+                        <span>{evidence.source.name}</span>
+                      </div>
                     </article>
                   );
                 })}
+              </div>
+
+              <div className="mt-8">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                    Risk assessment
+                  </p>
+
+                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+                    What needs attention
+                  </h2>
+                </div>
+
+                <div className="mt-6 space-y-4">
+                  {vehicle.risks.map((risk) => (
+                    <article
+                      key={risk.id}
+                      className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5"
+                    >
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center justify-between gap-3">
+                            <div>
+                              <p className="text-sm font-semibold text-zinc-950">
+                                {risk.title}
+                              </p>
+
+                              <p className="mt-1 text-xs text-zinc-500">
+                                {risk.category} · {risk.severity} risk
+                              </p>
+                            </div>
+
+                            <span className="text-xs font-medium text-amber-700">
+                              {risk.confidence} confidence
+                            </span>
+                          </div>
+
+                          <p className="mt-4 text-sm leading-6 text-zinc-700">
+                            {risk.explanation}
+                          </p>
+
+                          <div className="mt-4 rounded-xl bg-white/80 p-4">
+                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                              Recommended action
+                            </p>
+
+                            <p className="mt-2 text-sm leading-6 text-zinc-700">
+                              {risk.recommendedAction}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </article>
+                  ))}
+                </div>
               </div>
 
               <div className="mt-8 rounded-2xl bg-zinc-950 p-6 text-white sm:p-7">
@@ -166,12 +234,16 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
                   <ShieldCheck className="h-5 w-5" />
 
                   <h2 className="text-sm font-semibold">
-                    AI assessment
+                    AI interpretation
                   </h2>
                 </div>
 
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-300">
-                  {vehicle.aiAssessment}
+                <p className="mt-4 text-sm font-medium leading-7 text-white">
+                  {vehicle.ai.summary}
+                </p>
+
+                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
+                  {vehicle.ai.reasoning}
                 </p>
               </div>
 
@@ -185,7 +257,7 @@ export default async function VehiclePage({ params }: VehiclePageProps) {
                 </h2>
 
                 <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">
-                  {vehicle.recommendation}
+                  {vehicle.ai.recommendation}
                 </p>
               </div>
             </div>
