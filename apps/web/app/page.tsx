@@ -1,5 +1,6 @@
+import { VehicleSearch } from "@/components/vehicle/vehicle-search";
+import { VehicleIntelligencePreview } from "@/components/vehicle/vehicle-intelligence-preview";
 import {
-  ArrowRight,
   CarFront,
   CheckCircle2,
   FileSearch,
@@ -88,26 +89,7 @@ export default function Home() {
           </p>
 
           <div className="mx-auto mt-10 max-w-2xl">
-            <form className="flex flex-col gap-3 rounded-2xl border border-zinc-300 bg-white p-2 shadow-sm sm:flex-row">
-              <div className="flex min-w-0 flex-1 items-center gap-3 px-4">
-                <CarFront className="h-5 w-5 shrink-0 text-zinc-400" />
-
-                <input
-                  type="text"
-                  placeholder="Enter VIN or registration number"
-                  aria-label="VIN or registration number"
-                  className="h-12 min-w-0 flex-1 bg-transparent text-base outline-none placeholder:text-zinc-400"
-                />
-              </div>
-
-              <button
-                type="submit"
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-zinc-950 px-6 font-medium text-white transition-all hover:bg-zinc-800"
-              >
-                Analyze
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+            <VehicleSearch />
 
             <div className="mt-5 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-sm text-zinc-500">
               <span className="inline-flex items-center gap-2">
@@ -128,6 +110,8 @@ export default function Home() {
           </div>
         </div>
       </section>
+
+      <VehicleIntelligencePreview />
 
       <section
         id="capabilities"
