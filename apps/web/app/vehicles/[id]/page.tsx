@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { RiskEvidence } from "@/components/vehicle/risk-evidence";
 import { TrustScoreBreakdown } from "@/components/vehicle/trust-score-breakdown";
 import { getDemoVehicle } from "@/lib/vehicle/mock-data";
 
@@ -23,6 +24,14 @@ export default async function VehiclePage({
   }
 
   const vehicle = getDemoVehicle();
+
+  function getEvidenceForRisk(evidenceIds: string[]) {
+    return evidenceIds
+      .map((evidenceId) =>
+        vehicle.evidence.find((item) => item.id === evidenceId),
+      )
+      .filter((item) => item !== undefined);
+  }
 
   return (
     <main className="min-h-screen bg-zinc-50 text-zinc-950">
@@ -194,48 +203,60 @@ export default async function VehiclePage({
                 </div>
 
                 <div className="mt-6 space-y-4">
-                  {vehicle.risks.map((risk) => (
-                    <article
-                      key={risk.id}
-                      className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5"
-                    >
-                      <div className="flex items-start gap-3">
-                        <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
+                  {vehicle.risks.map((risk) => {
+                    const linkedEvidence = getEvidenceForRisk(
+                      risk.evidenceIds,
+                    );
 
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-wrap items-center justify-between gap-3">
-                            <div>
-                              <p className="text-sm font-semibold text-zinc-950">
-                                {risk.title}
-                              </p>
+                    return (
+                      <article
+                        key={risk.id}
+                        className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5"
+                      >
+                        <div className="flex items-start gap-3">
+                          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
 
-                              <p className="mt-1 text-xs text-zinc-500">
-                                {risk.category} · {risk.severity} risk
-                              </p>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-3">
+                              <div>
+                                <p className="text-sm font-semibold text-zinc-950">
+                                  {risk.title}
+                                </p>
+
+                                <p className="mt-1 text-xs text-zinc-500">
+                                  {risk.category} · {risk.severity} risk
+                                </p>
+                              </div>
+
+                              <span className="text-xs font-medium text-amber-700">
+                                {risk.confidence} confidence
+                              </span>
                             </div>
 
-                            <span className="text-xs font-medium text-amber-700">
-                              {risk.confidence} confidence
-                            </span>
-                          </div>
-
-                          <p className="mt-4 text-sm leading-6 text-zinc-700">
-                            {risk.explanation}
-                          </p>
-
-                          <div className="mt-4 rounded-xl bg-white/80 p-4">
-                            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
-                              Recommended action
+                            <p className="mt-4 text-sm leading-6 text-zinc-700">
+                              {risk.explanation}
                             </p>
 
-                            <p className="mt-2 text-sm leading-6 text-zinc-700">
-                              {risk.recommendedAction}
-                            </p>
+                            <div className="mt-5">
+                              <RiskEvidence
+                                evidence={linkedEvidence}
+                              />
+                            </div>
+
+                            <div className="mt-4 rounded-xl bg-white/80 p-4">
+                              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                                Recommended action
+                              </p>
+
+                              <p className="mt-2 text-sm leading-6 text-zinc-700">
+                                {risk.recommendedAction}
+                              </p>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </article>
-                  ))}
+                      </article>
+                    );
+                  })}
                 </div>
               </div>
 
