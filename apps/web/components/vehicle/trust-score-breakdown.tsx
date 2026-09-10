@@ -10,6 +10,7 @@ import type {
   EvidenceItem,
   TrustFactor,
 } from "@/lib/vehicle/types";
+import { getEvidenceQuality } from "@/lib/vehicle/evidence/quality";
 
 type TrustScoreBreakdownProps = {
   baseScore: number;
@@ -34,7 +35,9 @@ export function TrustScoreBreakdown({
       .map((evidenceId) =>
         evidence.find((item) => item.id === evidenceId),
       )
-      .filter((item): item is EvidenceItem => item !== undefined);
+      .filter(
+        (item): item is EvidenceItem => item !== undefined,
+      );
   }
 
   return (
@@ -116,6 +119,7 @@ export function TrustScoreBreakdown({
                     </p>
 
                     {linkedEvidence.map((item) => {
+                      const quality = getEvidenceQuality(item);
                       const verified = item.status === "verified";
 
                       return (
@@ -137,8 +141,7 @@ export function TrustScoreBreakdown({
                                 </p>
 
                                 <p className="mt-1 text-xs text-zinc-500">
-                                  {item.category} ·{" "}
-                                  {item.status.replace("_", " ")}
+                                  {item.category} · {quality.label}
                                 </p>
                               </div>
                             </div>
@@ -146,17 +149,23 @@ export function TrustScoreBreakdown({
                             <span
                               className={
                                 verified
-                                  ? "text-xs font-semibold text-emerald-700"
-                                  : "text-xs font-semibold text-amber-700"
+                                  ? "shrink-0 text-xs font-semibold text-emerald-700"
+                                  : "shrink-0 text-xs font-semibold text-amber-700"
                               }
                             >
-                              {item.confidence} confidence
+                              {quality.confidence} confidence
                             </span>
                           </div>
 
                           <p className="mt-3 text-sm leading-6 text-zinc-600">
                             {item.explanation}
                           </p>
+
+                          <div className="mt-3 rounded-lg bg-zinc-50 p-3">
+                            <p className="text-xs leading-5 text-zinc-600">
+                              {quality.description}
+                            </p>
+                          </div>
 
                           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-zinc-100 pt-3">
                             <div>
