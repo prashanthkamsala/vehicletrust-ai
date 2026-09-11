@@ -67,7 +67,7 @@ class RiskItem(BaseModel):
         default_factory=list,
         serialization_alias="evidenceIds",
     )
-    recommended_action: str
+    recommended_action: str = Field(serialization_alias="recommendedAction")
 
 
 class TrustFactor(BaseModel):

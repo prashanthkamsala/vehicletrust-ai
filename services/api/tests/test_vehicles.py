@@ -28,6 +28,9 @@ def test_get_demo_vehicle() -> None:
     assert data["trust"]["factors"][0]["evidenceIds"] == [
         "ownership-history"
     ]
+    assert data["risks"][0]["recommendedAction"] == (
+    "Request the latest service invoices and maintenance records before purchase."
+)
 
 
 def test_demo_vehicle_contains_traceable_risk() -> None:
