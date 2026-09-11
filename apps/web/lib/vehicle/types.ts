@@ -32,6 +32,101 @@ export interface EvidenceItem {
   observedAt?: string;
 }
 
+export interface VehicleRegistration {
+  registrationNumber: string;
+  registrationDate?: string;
+  registeringAuthority?: string;
+  state?: string;
+  status?: "active" | "inactive" | "suspended" | "unknown";
+}
+
+export interface OwnershipRecord {
+  ownerSequence: number;
+  ownershipType?: string;
+  startDate?: string;
+  endDate?: string;
+  source: EvidenceSource;
+}
+
+export interface InsuranceDetails {
+  status: "active" | "expired" | "unknown";
+  policyType?: string;
+  provider?: string;
+  policyNumber?: string;
+  startDate?: string;
+  expiryDate?: string;
+}
+
+export interface PucDetails {
+  status: "valid" | "expired" | "not_available" | "unknown";
+  certificateNumber?: string;
+  issueDate?: string;
+  expiryDate?: string;
+  emissionNorm?: string;
+}
+
+export interface FinanceDetails {
+  status: "active" | "closed" | "unknown";
+  financier?: string;
+  startDate?: string;
+  closureDate?: string;
+}
+
+export interface ServiceRecord {
+  id: string;
+  serviceDate: string;
+  odometerKm?: number;
+  serviceType?: string;
+  serviceCenter?: string;
+  description?: string;
+}
+
+export interface OdometerRecord {
+  observedAt: string;
+  odometerKm: number;
+  source: EvidenceSource;
+}
+
+export interface AccidentRecord {
+  id: string;
+  date?: string;
+  severity?: "minor" | "moderate" | "major" | "unknown";
+  description?: string;
+  source: EvidenceSource;
+}
+
+export interface ChallanRecord {
+  id: string;
+  date?: string;
+  status: "open" | "paid" | "cancelled" | "unknown";
+  amount?: number;
+  description?: string;
+  source: EvidenceSource;
+}
+
+export interface ManufacturerDetails {
+  manufacturer: string;
+  model?: string;
+  variant?: string;
+  fuelType?: string;
+  transmission?: string;
+  manufacturingDate?: string;
+  warrantyStatus?: "active" | "expired" | "unknown";
+}
+
+export interface VehicleData {
+  registration?: VehicleRegistration;
+  ownership?: OwnershipRecord[];
+  insurance?: InsuranceDetails;
+  puc?: PucDetails;
+  finance?: FinanceDetails;
+  serviceHistory?: ServiceRecord[];
+  odometerHistory?: OdometerRecord[];
+  accidentHistory?: AccidentRecord[];
+  challans?: ChallanRecord[];
+  manufacturer?: ManufacturerDetails;
+}
+
 export interface RiskItem {
   id: string;
   category: string;
@@ -77,6 +172,7 @@ export interface VehicleIdentity {
 export interface VehicleIntelligence {
   id: string;
   identity: VehicleIdentity;
+  data?: VehicleData;
   evidence: EvidenceItem[];
   risks: RiskItem[];
   trust: TrustAssessment;

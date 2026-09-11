@@ -8,7 +8,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { RiskEvidence } from "@/components/vehicle/risk-evidence";
 import { TrustScoreBreakdown } from "@/components/vehicle/trust-score-breakdown";
-import { getDemoVehicle } from "@/lib/vehicle/mock-data";
+import { getVehicleByRegistration } from "@/lib/api/client";
+import type { VehicleIntelligence } from "@/lib/vehicle/types";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
@@ -19,11 +20,17 @@ export default async function VehiclePage({
 }: VehiclePageProps) {
   const { id } = await params;
 
-  if (id !== "demo-vehicle") {
-    notFound();
-  }
+  let vehicle: VehicleIntelligence;
 
-  const vehicle = getDemoVehicle();
+  try {
+    vehicle = await getVehicleByRegistration(id);
+  } catch (error) {
+    if (error instanceof Error && "status" in error && error.status === 404) {
+      notFound();
+    }
+
+    throw error;
+  }
 
   function getEvidenceForRisk(evidenceIds: string[]) {
     return evidenceIds
