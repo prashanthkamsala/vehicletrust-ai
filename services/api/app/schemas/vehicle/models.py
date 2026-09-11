@@ -52,7 +52,7 @@ class EvidenceItem(BaseModel):
     confidence: EvidenceConfidence
     explanation: str
     source: EvidenceSource
-    observed_at: str | None = None
+    observed_at: str | None = Field(default=None, serialization_alias="observedAt")
 
 
 class RiskItem(BaseModel):
@@ -63,7 +63,10 @@ class RiskItem(BaseModel):
     status: RiskStatus
     confidence: EvidenceConfidence
     explanation: str
-    evidence_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(
+        default_factory=list,
+        serialization_alias="evidenceIds",
+    )
     recommended_action: str
 
 
@@ -72,16 +75,22 @@ class TrustFactor(BaseModel):
     name: str
     impact: TrustImpact
     contribution: int
-    evidence_ids: list[str] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(
+        default_factory=list,
+        serialization_alias="evidenceIds",
+    )
 
 
 class TrustAssessment(BaseModel):
-    base_score: int = Field(ge=0, le=100)
+    base_score: int = Field(
+        ge=0,
+        le=100,
+        serialization_alias="baseScore",
+    )
     score: int = Field(ge=0, le=100)
     confidence: EvidenceConfidence
     assessment: str
     factors: list[TrustFactor] = Field(default_factory=list)
-
 
 class AIInterpretation(BaseModel):
     summary: str

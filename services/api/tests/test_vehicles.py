@@ -22,10 +22,10 @@ def test_get_demo_vehicle() -> None:
     assert len(data["evidence"]) == 4
     assert len(data["risks"]) == 1
 
-    assert data["trust"]["base_score"] == 35
+    assert data["trust"]["baseScore"] == 35
     assert data["trust"]["score"] == 87
 
-    assert data["trust"]["factors"][0]["evidence_ids"] == [
+    assert data["trust"]["factors"][0]["evidenceIds"] == [
         "ownership-history"
     ]
 
@@ -43,7 +43,7 @@ def test_demo_vehicle_contains_traceable_risk() -> None:
     }
 
     for risk in data["risks"]:
-        for evidence_id in risk["evidence_ids"]:
+        for evidence_id in risk["evidenceIds"]:
             assert evidence_id in evidence_ids
 
 
