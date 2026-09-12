@@ -5,6 +5,7 @@ import { getVehicleByRegistration } from "@/lib/api/client";
 import type { VehicleIntelligence } from "@/lib/vehicle/types";
 import { TrustBreakdown } from "@/components/vehicle/trust-breakdown";
 import { EvidenceExplorer } from "@/components/vehicle/evidence-explorer";
+import { RiskEvidenceCard } from "@/components/vehicle/risk-evidence-card";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
@@ -182,6 +183,35 @@ export default async function VehiclePage({
           confidence={vehicle.trust.confidence}
           factors={vehicle.trust.factors}
         />
+        {vehicle.risks.length > 0 && (
+          <section className="mt-6 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
+            <div className="border-b border-zinc-200 px-6 py-6 sm:px-8 lg:px-10">
+              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                Risk analysis
+              </p>
+
+              <div className="mt-2">
+                <h2 className="text-2xl font-semibold tracking-tight text-zinc-950">
+                  Risks requiring attention
+                </h2>
+
+                <p className="mt-1 max-w-2xl text-sm text-zinc-500">
+                  Each identified risk is linked to the evidence that supports it.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4 bg-zinc-50 p-4 sm:p-6 lg:p-8">
+              {vehicle.risks.map((risk) => (
+                <RiskEvidenceCard
+                  key={risk.id}
+                  risk={risk}
+                  evidence={vehicle.evidence}
+                />
+              ))}
+            </div>
+          </section>
+        )}
         <div className="mt-6">
           <EvidenceExplorer evidence={vehicle.evidence} />
         </div>
