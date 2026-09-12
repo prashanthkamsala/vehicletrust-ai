@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getVehicleByRegistration } from "@/lib/api/client";
 import type { VehicleIntelligence } from "@/lib/vehicle/types";
 import { TrustBreakdown } from "@/components/vehicle/trust-breakdown";
+import { EvidenceExplorer } from "@/components/vehicle/evidence-explorer";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
@@ -181,10 +182,12 @@ export default async function VehiclePage({
           confidence={vehicle.trust.confidence}
           factors={vehicle.trust.factors}
         />
+        <div className="mt-6">
+          <EvidenceExplorer evidence={vehicle.evidence} />
+        </div>
 
         <p className="mt-6 text-center text-xs text-zinc-400">
-          Demo intelligence data · Evidence sources will be connected in a
-          future release.
+          Assessment generated from available vehicle evidence.
         </p>
       </div>
     </main>
