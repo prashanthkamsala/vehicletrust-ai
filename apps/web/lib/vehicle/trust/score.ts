@@ -37,13 +37,16 @@ export function createTrustAssessment({
   confidence,
   assessment,
 }: TrustAssessmentInput): TrustAssessment {
-  const score = calculateTrustScore({
+  const calculatedScore = calculateTrustScore({
     baseScore,
     factors,
   });
 
+  const score = Math.min(100, Math.max(0, calculatedScore));
+
   return {
     baseScore,
+    calculatedScore,
     score,
     confidence,
     assessment,

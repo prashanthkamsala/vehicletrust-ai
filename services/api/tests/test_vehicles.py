@@ -74,7 +74,12 @@ def test_lookup_clean_vehicle() -> None:
     assert len(data["data"]["serviceHistory"]) == 4
     assert len(data["data"]["accidentHistory"]) == 0
     assert len(data["data"]["challans"]) == 0
+    assert data["ai"]["summary"]
+    assert data["ai"]["reasoning"]
+    assert data["ai"]["recommendation"]
 
+    assert "very high trust" in data["ai"]["summary"].lower()
+    assert "no significant risks" in data["ai"]["summary"].lower()
 
 def test_lookup_moderate_risk_vehicle() -> None:
     response = client.get(
@@ -100,6 +105,13 @@ def test_lookup_moderate_risk_vehicle() -> None:
 
     assert len(data["data"]["challans"]) == 1
     assert data["data"]["challans"][0]["status"] == "paid"
+    assert data["ai"]["summary"]
+    assert data["ai"]["reasoning"]
+    assert data["ai"]["recommendation"]
+
+    assert "moderate trust" in data["ai"]["summary"].lower()
+    assert "PUC certificate has expired" in data["ai"]["reasoning"]
+    assert "Multiple ownership history" in data["ai"]["reasoning"]
 
 
 def test_lookup_high_risk_vehicle() -> None:
@@ -130,6 +142,13 @@ def test_lookup_high_risk_vehicle() -> None:
 
     assert odometer_history[0]["odometerKm"] < odometer_history[1]["odometerKm"]
     assert odometer_history[2]["odometerKm"] < odometer_history[1]["odometerKm"]
+    assert data["ai"]["summary"]
+    assert data["ai"]["reasoning"]
+    assert data["ai"]["recommendation"]
+
+    assert "very low trust" in data["ai"]["summary"].lower()
+    assert "Odometer inconsistency detected" in data["ai"]["reasoning"]
+    assert "Major accident history requires investigation" in data["ai"]["reasoning"]
 
 
 def test_lookup_normalizes_registration() -> None:

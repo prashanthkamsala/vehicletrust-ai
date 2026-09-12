@@ -1,15 +1,9 @@
-import {
-  AlertTriangle,
-  ArrowLeft,
-  CheckCircle2,
-  ShieldCheck,
-} from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { RiskEvidence } from "@/components/vehicle/risk-evidence";
-import { TrustScoreBreakdown } from "@/components/vehicle/trust-score-breakdown";
 import { getVehicleByRegistration } from "@/lib/api/client";
 import type { VehicleIntelligence } from "@/lib/vehicle/types";
+import { TrustBreakdown } from "@/components/vehicle/trust-breakdown";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
@@ -19,25 +13,18 @@ export default async function VehiclePage({
   params,
 }: VehiclePageProps) {
   const { id } = await params;
+  const registration = decodeURIComponent(id);
 
   let vehicle: VehicleIntelligence;
 
   try {
-    vehicle = await getVehicleByRegistration(id);
+    vehicle = await getVehicleByRegistration(registration);
   } catch (error) {
     if (error instanceof Error && "status" in error && error.status === 404) {
       notFound();
     }
 
     throw error;
-  }
-
-  function getEvidenceForRisk(evidenceIds: string[]) {
-    return evidenceIds
-      .map((evidenceId) =>
-        vehicle.evidence.find((item) => item.id === evidenceId),
-      )
-      .filter((item) => item !== undefined);
   }
 
   return (
@@ -60,247 +47,140 @@ export default async function VehiclePage({
       </header>
 
       <div className="mx-auto max-w-7xl px-6 py-10 lg:px-8 lg:py-14">
-        <section className="rounded-3xl border border-zinc-200 bg-white shadow-sm">
-          <div className="border-b border-zinc-200 px-6 py-7 sm:px-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-              Vehicle intelligence
-            </p>
-
-            <div className="mt-3 flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+        <section className="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
+          <div className="border-b border-zinc-200 px-6 py-7 sm:px-8 lg:px-10">
+            <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                  Vehicle intelligence
+                </p>
+
+                <h1 className="mt-3 text-3xl font-semibold tracking-tight text-zinc-950 sm:text-4xl">
                   {vehicle.identity.year} {vehicle.identity.make}{" "}
                   {vehicle.identity.model}
                 </h1>
 
-                <p className="mt-2 text-sm text-zinc-500">
-                  {vehicle.identity.registration} · VIN{" "}
-                  {vehicle.identity.vin}
-                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-zinc-500">
+                  <span>{vehicle.identity.registration}</span>
+                  <span className="text-zinc-300">•</span>
+                  <span>VIN {vehicle.identity.vin}</span>
+                </div>
               </div>
 
-              <div className="inline-flex w-fit items-center gap-2 rounded-xl border border-zinc-200 bg-zinc-50 px-4 py-2.5 text-sm font-medium text-zinc-700">
+              <div className="inline-flex w-fit items-center gap-2 rounded-full border border-zinc-200 bg-zinc-50 px-4 py-2 text-sm font-medium text-zinc-700">
                 <ShieldCheck className="h-4 w-4" />
                 {vehicle.trust.assessment}
               </div>
             </div>
           </div>
 
-          <div className="grid lg:grid-cols-[300px_1fr]">
-            <div className="border-b border-zinc-200 bg-zinc-50 p-8 lg:border-b-0 lg:border-r lg:p-10">
+          <div className="grid lg:grid-cols-[320px_1fr]">
+            <div className="flex flex-col items-center justify-center border-b border-zinc-200 bg-zinc-50 px-6 py-10 lg:border-b-0 lg:border-r lg:px-10">
               <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
                 Trust score
               </p>
 
-              <div className="mt-7 flex items-center justify-center">
-                <div className="flex h-52 w-52 items-center justify-center rounded-full border-[12px] border-zinc-200">
-                  <div className="text-center">
-                    <div className="text-6xl font-semibold tracking-tight">
-                      {vehicle.trust.score}
-                    </div>
+              <div className="mt-6 flex h-52 w-52 items-center justify-center rounded-full border-[12px] border-zinc-200 bg-white">
+                <div className="text-center">
+                  <div className="text-6xl font-semibold tracking-tight text-zinc-950">
+                    {vehicle.trust.score}
+                  </div>
 
-                    <div className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
-                      / 100
-                    </div>
+                  <div className="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-zinc-500">
+                    / 100
+                  </div>
 
-                    <div className="mt-3 text-xs text-zinc-500">
-                      {vehicle.trust.confidence} confidence
-                    </div>
+                  <div className="mt-3 text-xs text-zinc-500">
+                    {vehicle.trust.confidence} confidence
                   </div>
                 </div>
               </div>
 
-              <div className="mt-7 flex items-center justify-center gap-2 text-sm font-medium text-zinc-700">
+              <div className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-zinc-700">
                 <ShieldCheck className="h-4 w-4" />
                 {vehicle.trust.assessment}
               </div>
             </div>
 
             <div className="p-6 sm:p-8 lg:p-10">
-              <TrustScoreBreakdown
-                baseScore={vehicle.trust.baseScore}
-                score={vehicle.trust.score}
-                factors={vehicle.trust.factors}
-                evidence={vehicle.evidence}
-              />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
+                  AI assessment
+                </p>
 
-              <div className="mt-10 flex items-end justify-between gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                    Evidence
-                  </p>
+                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
+                  What the available evidence tells us
+                </h2>
 
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                    What we found
-                  </h2>
-                </div>
-
-                <span className="hidden text-sm text-zinc-500 sm:block">
-                  {vehicle.evidence.length} evidence items
-                </span>
-              </div>
-
-              <div className="mt-7 grid gap-4 sm:grid-cols-2">
-                {vehicle.evidence.map((evidence) => {
-                  const verified = evidence.status === "verified";
-
-                  return (
-                    <article
-                      key={evidence.id}
-                      className="rounded-2xl border border-zinc-200 p-5"
-                    >
-                      <div className="flex items-start justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          {verified ? (
-                            <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
-                          ) : (
-                            <AlertTriangle className="h-5 w-5 shrink-0 text-amber-600" />
-                          )}
-
-                          <div>
-                            <p className="text-sm font-semibold">
-                              {evidence.title}
-                            </p>
-
-                            <p className="mt-1 text-xs text-zinc-500">
-                              {evidence.category}
-                            </p>
-                          </div>
-                        </div>
-
-                        <span
-                          className={
-                            verified
-                              ? "text-sm font-semibold text-emerald-700"
-                              : "text-sm font-semibold text-amber-700"
-                          }
-                        >
-                          {evidence.value}
-                        </span>
-                      </div>
-
-                      <p className="mt-4 text-sm leading-6 text-zinc-600">
-                        {evidence.explanation}
-                      </p>
-
-                      <div className="mt-4 flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-                        <span>
-                          Confidence:{" "}
-                          <span className="font-medium text-zinc-700">
-                            {evidence.confidence}
-                          </span>
-                        </span>
-
-                        <span>{evidence.source.name}</span>
-                      </div>
-                    </article>
-                  );
-                })}
-              </div>
-
-              <div className="mt-8">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                    Risk assessment
-                  </p>
-
-                  <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                    What needs attention
-                  </h2>
-                </div>
-
-                <div className="mt-6 space-y-4">
-                  {vehicle.risks.map((risk) => {
-                    const linkedEvidence = getEvidenceForRisk(
-                      risk.evidenceIds,
-                    );
-
-                    return (
-                      <article
-                        key={risk.id}
-                        className="rounded-2xl border border-amber-200 bg-amber-50/50 p-5"
-                      >
-                        <div className="flex items-start gap-3">
-                          <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-600" />
-
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center justify-between gap-3">
-                              <div>
-                                <p className="text-sm font-semibold text-zinc-950">
-                                  {risk.title}
-                                </p>
-
-                                <p className="mt-1 text-xs text-zinc-500">
-                                  {risk.category} · {risk.severity} risk
-                                </p>
-                              </div>
-
-                              <span className="text-xs font-medium text-amber-700">
-                                {risk.confidence} confidence
-                              </span>
-                            </div>
-
-                            <p className="mt-4 text-sm leading-6 text-zinc-700">
-                              {risk.explanation}
-                            </p>
-
-                            <div className="mt-5">
-                              <RiskEvidence
-                                evidence={linkedEvidence}
-                              />
-                            </div>
-
-                            <div className="mt-4 rounded-xl bg-white/80 p-4">
-                              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
-                                Recommended action
-                              </p>
-
-                              <p className="mt-2 text-sm leading-6 text-zinc-700">
-                                {risk.recommendedAction}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      </article>
-                    );
-                  })}
-                </div>
-              </div>
-
-              <div className="mt-8 rounded-2xl bg-zinc-950 p-6 text-white sm:p-7">
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="h-5 w-5" />
-
-                  <h2 className="text-sm font-semibold">
-                    AI interpretation
-                  </h2>
-                </div>
-
-                <p className="mt-4 text-sm font-medium leading-7 text-white">
+                <p className="mt-5 max-w-3xl text-base font-medium leading-7 text-zinc-800">
                   {vehicle.ai.summary}
                 </p>
 
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-300">
+                <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-600">
                   {vehicle.ai.reasoning}
                 </p>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-zinc-200 bg-zinc-50 p-6 sm:p-7">
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                  Recommendation
-                </p>
+              <div className="mt-8 grid gap-3 sm:grid-cols-3">
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                    Evidence
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-zinc-950">
+                    {vehicle.evidence.length}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    evidence items analyzed
+                  </p>
+                </div>
 
-                <h2 className="mt-2 text-xl font-semibold tracking-tight">
-                  What to do next
-                </h2>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                    Risks
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold text-zinc-950">
+                    {vehicle.risks.length}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    issues requiring attention
+                  </p>
+                </div>
 
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-zinc-600">
-                  {vehicle.ai.recommendation}
-                </p>
+                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
+                    Confidence
+                  </p>
+                  <p className="mt-2 text-2xl font-semibold capitalize text-zinc-950">
+                    {vehicle.trust.confidence}
+                  </p>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    evidence confidence
+                  </p>
+                </div>
               </div>
             </div>
           </div>
+
+          <div className="border-t border-zinc-200 bg-zinc-50 px-6 py-4 sm:px-8 lg:px-10">
+            <div className="flex flex-col gap-2 text-xs text-zinc-500 sm:flex-row sm:items-center sm:justify-between">
+              <span>
+                Assessment generated from available vehicle evidence
+              </span>
+
+              <span>
+                {vehicle.evidence.length} evidence items · {vehicle.risks.length} risks
+              </span>
+            </div>
+          </div>
         </section>
+        <TrustBreakdown
+          baseScore={vehicle.trust.baseScore}
+          calculatedScore={vehicle.trust.calculatedScore}
+          score={vehicle.trust.score}
+          assessment={vehicle.trust.assessment}
+          confidence={vehicle.trust.confidence}
+          factors={vehicle.trust.factors}
+        />
 
         <p className="mt-6 text-center text-xs text-zinc-400">
           Demo intelligence data · Evidence sources will be connected in a

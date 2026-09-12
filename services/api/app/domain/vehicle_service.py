@@ -1,3 +1,7 @@
+from app.intelligence.ai.explanation import build_ai_interpretation
+from app.intelligence.evidence.engine import build_evidence
+from app.intelligence.risk.engine import build_risks
+from app.intelligence.trust.engine import build_trust_assessment
 from app.providers.mock_india import MockIndiaProvider
 from app.schemas.vehicle.models import (
     AIInterpretation,
@@ -37,6 +41,18 @@ def get_vehicle_by_registration(
     if manufacturer is None:
         return None
 
+    evidence = build_evidence(vehicle_data)
+    risks = build_risks(evidence)
+    trust = build_trust_assessment(
+        evidence=evidence,
+        risks=risks,
+    )
+    ai = build_ai_interpretation(
+    evidence=evidence,
+    risks=risks,
+    trust=trust,
+    )
+
     return VehicleIntelligence(
         id=f"vehicle-{vehicle_data.registration.registration_number.replace(' ', '-').lower()}",
         identity=VehicleIdentity(
@@ -51,10 +67,10 @@ def get_vehicle_by_registration(
             ),
         ),
         data=vehicle_data,
-        evidence=_build_demo_evidence(),
-        risks=_build_demo_risks(),
-        trust=_build_demo_trust(),
-        ai=_build_demo_ai(),
+        evidence=evidence,
+        risks=risks,
+        trust=trust,
+        ai=ai,
     )
 
 
@@ -196,6 +212,7 @@ def _build_demo_trust() -> TrustAssessment:
 
     return TrustAssessment(
         base_score=35,
+        calculated_score=87,
         score=87,
         confidence="high",
         assessment="Low-risk profile",

@@ -149,6 +149,7 @@ export interface TrustFactor {
 
 export interface TrustAssessment {
   baseScore: number;
+  calculatedScore: number;
   score: number;
   confidence: EvidenceConfidence;
   assessment: string;

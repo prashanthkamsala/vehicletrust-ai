@@ -87,10 +87,16 @@ class TrustAssessment(BaseModel):
         le=100,
         serialization_alias="baseScore",
     )
-    score: int = Field(ge=0, le=100)
+    calculated_score: int = Field(serialization_alias="calculatedScore")
+    score: int = Field(
+        ge=0,
+        le=100,
+        serialization_alias="score",
+    )
     confidence: EvidenceConfidence
     assessment: str
     factors: list[TrustFactor] = Field(default_factory=list)
+
 
 class AIInterpretation(BaseModel):
     summary: str
