@@ -97,6 +97,23 @@ class TrustAssessment(BaseModel):
     assessment: str
     factors: list[TrustFactor] = Field(default_factory=list)
 
+DecisionRecommendation = Literal[
+    "buy",
+    "review",
+    "avoid",
+    "insufficient_evidence",
+]
+
+
+class DecisionAssessment(BaseModel):
+    recommendation: DecisionRecommendation
+    confidence: EvidenceConfidence
+    rationale: str
+    priority_risk_ids: list[str] = Field(
+        default_factory=list,
+        serialization_alias="priorityRiskIds",
+    )
+
 
 class AIInterpretation(BaseModel):
     summary: str
@@ -309,4 +326,5 @@ class VehicleIntelligence(BaseModel):
     evidence: list[EvidenceItem] = Field(default_factory=list)
     risks: list[RiskItem] = Field(default_factory=list)
     trust: TrustAssessment
+    decision: DecisionAssessment
     ai: AIInterpretation

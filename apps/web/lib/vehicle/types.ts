@@ -156,6 +156,19 @@ export interface TrustAssessment {
   factors: TrustFactor[];
 }
 
+export type DecisionRecommendation =
+  | "buy"
+  | "review"
+  | "avoid"
+  | "insufficient_evidence";
+
+export interface DecisionAssessment {
+  recommendation: DecisionRecommendation;
+  confidence: EvidenceConfidence;
+  rationale: string;
+  priorityRiskIds: string[];
+}
+
 export interface AIInterpretation {
   summary: string;
   reasoning: string;
@@ -177,5 +190,6 @@ export interface VehicleIntelligence {
   evidence: EvidenceItem[];
   risks: RiskItem[];
   trust: TrustAssessment;
+  decision: DecisionAssessment;
   ai: AIInterpretation;
 }

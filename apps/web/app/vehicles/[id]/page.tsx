@@ -6,6 +6,7 @@ import type { VehicleIntelligence } from "@/lib/vehicle/types";
 import { TrustBreakdown } from "@/components/vehicle/trust-breakdown";
 import { EvidenceExplorer } from "@/components/vehicle/evidence-explorer";
 import { RiskEvidenceCard } from "@/components/vehicle/risk-evidence-card";
+import { DecisionSummary } from "@/components/vehicle/decision-summary";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
@@ -175,6 +176,16 @@ export default async function VehiclePage({
             </div>
           </div>
         </section>
+        <div className="mt-6">
+          <DecisionSummary
+            recommendation={vehicle.decision.recommendation}
+            confidence={vehicle.decision.confidence}
+            rationale={vehicle.decision.rationale}
+            priorityRiskIds={vehicle.decision.priorityRiskIds}
+            risks={vehicle.risks}
+          />
+        </div>
+
         <TrustBreakdown
           baseScore={vehicle.trust.baseScore}
           calculatedScore={vehicle.trust.calculatedScore}

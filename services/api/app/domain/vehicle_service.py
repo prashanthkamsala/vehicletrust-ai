@@ -2,6 +2,7 @@ from app.intelligence.ai.explanation import build_ai_interpretation
 from app.intelligence.evidence.engine import build_evidence
 from app.intelligence.risk.engine import build_risks
 from app.intelligence.trust.engine import build_trust_assessment
+from app.intelligence.decision.engine import build_decision_assessment
 from app.providers.mock_india import MockIndiaProvider
 from app.schemas.vehicle.models import (
     AIInterpretation,
@@ -47,10 +48,15 @@ def get_vehicle_by_registration(
         evidence=evidence,
         risks=risks,
     )
+    decision = build_decision_assessment(
+        risks=risks,
+        trust=trust,
+        evidence_count=len(evidence),
+    )
     ai = build_ai_interpretation(
-    evidence=evidence,
-    risks=risks,
-    trust=trust,
+        evidence=evidence,
+        risks=risks,
+        trust=trust,
     )
 
     return VehicleIntelligence(
@@ -70,11 +76,22 @@ def get_vehicle_by_registration(
         evidence=evidence,
         risks=risks,
         trust=trust,
+        decision=decision,
         ai=ai,
     )
 
 
 def _build_demo_vehicle() -> VehicleIntelligence:
+    evidence = _build_demo_evidence()
+    risks = _build_demo_risks()
+    trust = _build_demo_trust()
+    decision = build_decision_assessment(
+        risks=risks,
+        trust=trust,
+        evidence_count=len(evidence),
+    )
+    ai = _build_demo_ai()
+
     return VehicleIntelligence(
         id="demo-vehicle",
         identity=VehicleIdentity(
@@ -84,10 +101,11 @@ def _build_demo_vehicle() -> VehicleIntelligence:
             registration="KA 01 AB 1234",
             vin="DEMO1TOYOTA2021CAMRY",
         ),
-        evidence=_build_demo_evidence(),
-        risks=_build_demo_risks(),
-        trust=_build_demo_trust(),
-        ai=_build_demo_ai(),
+        evidence=evidence,
+        risks=risks,
+        trust=trust,
+        decision=decision,
+        ai=ai,
     )
 
 

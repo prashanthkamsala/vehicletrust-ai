@@ -137,7 +137,13 @@ export const demoVehicle: VehicleIntelligence = {
     assessment: "Low-risk profile",
     factors: demoTrustFactors,
   }),
-
+  decision: {
+    recommendation: "buy",
+    confidence: "high",
+    rationale:
+      "The available evidence indicates a strong trust profile without high-severity risks requiring resolution.",
+    priorityRiskIds: [],
+  },
   ai: {
     summary:
       "The available evidence indicates a relatively low-risk vehicle.",
