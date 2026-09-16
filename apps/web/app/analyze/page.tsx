@@ -32,7 +32,7 @@ export default function AnalyzePage() {
           window.clearInterval(timer);
 
           window.setTimeout(() => {
-            router.replace("/vehicles/demo-vehicle");
+            router.replace(`/vehicles/${encodeURIComponent(vehicle)}`);
           }, 700);
 
           return currentStep;
