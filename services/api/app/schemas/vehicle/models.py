@@ -43,6 +43,21 @@ class EvidenceSource(BaseModel):
     type: str
 
 
+class EvidenceProvenance(BaseModel):
+    observed_at: str | None = Field(
+        default=None,
+        serialization_alias="observedAt",
+    )
+    retrieved_at: str | None = Field(
+        default=None,
+        serialization_alias="retrievedAt",
+    )
+    reference_id: str | None = Field(
+        default=None,
+        serialization_alias="referenceId",
+    )
+
+
 class EvidenceItem(BaseModel):
     id: str
     category: str
@@ -52,7 +67,7 @@ class EvidenceItem(BaseModel):
     confidence: EvidenceConfidence
     explanation: str
     source: EvidenceSource
-    observed_at: str | None = Field(default=None, serialization_alias="observedAt")
+    provenance: EvidenceProvenance
 
 
 class RiskItem(BaseModel):

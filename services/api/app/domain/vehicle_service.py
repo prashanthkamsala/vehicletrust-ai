@@ -7,6 +7,7 @@ from app.providers.mock_india import MockIndiaProvider
 from app.schemas.vehicle.models import (
     AIInterpretation,
     EvidenceItem,
+    EvidenceProvenance,
     EvidenceSource,
     RiskItem,
     TrustAssessment,
@@ -124,7 +125,9 @@ def _build_demo_evidence() -> list[EvidenceItem]:
                 name="Vehicle registration records",
                 type="registration",
             ),
-            observed_at="2026-09-10",
+            provenance=EvidenceProvenance(
+                observed_at="2026-09-10",
+            ),
         ),
         EvidenceItem(
             id="accident-history",
@@ -139,7 +142,9 @@ def _build_demo_evidence() -> list[EvidenceItem]:
                 name="Vehicle history records",
                 type="vehicle_history",
             ),
-            observed_at="2026-09-10",
+            provenance=EvidenceProvenance(
+                observed_at="2026-09-10",
+            ),
         ),
         EvidenceItem(
             id="service-history",
@@ -154,7 +159,9 @@ def _build_demo_evidence() -> list[EvidenceItem]:
                 name="Service records",
                 type="maintenance",
             ),
-            observed_at="2026-09-10",
+            provenance=EvidenceProvenance(
+                observed_at="2026-09-10",
+            ),
         ),
         EvidenceItem(
             id="mileage-consistency",
@@ -169,7 +176,9 @@ def _build_demo_evidence() -> list[EvidenceItem]:
                 name="Mileage records",
                 type="vehicle_history",
             ),
-            observed_at="2026-09-10",
+            provenance=EvidenceProvenance(
+                observed_at="2026-09-10",
+            ),
         ),
     ]
 

@@ -1,12 +1,14 @@
 from app.schemas.vehicle.models import (
+    EvidenceConfidence,
     EvidenceItem,
+    EvidenceProvenance,
     EvidenceSource,
     VehicleData,
 )
 
 
 def build_evidence(vehicle_data: VehicleData) -> list[EvidenceItem]:
-    """Build deterministic evidence from observed vehicle data."""
+    """Build deterministic, evidence-backed signals from vehicle data."""
 
     evidence: list[EvidenceItem] = []
 
@@ -15,7 +17,7 @@ def build_evidence(vehicle_data: VehicleData) -> list[EvidenceItem]:
     _add_insurance_evidence(evidence, vehicle_data)
     _add_puc_evidence(evidence, vehicle_data)
     _add_finance_evidence(evidence, vehicle_data)
-    _add_service_evidence(evidence, vehicle_data)
+    _add_service_history_evidence(evidence, vehicle_data)
     _add_odometer_evidence(evidence, vehicle_data)
     _add_accident_evidence(evidence, vehicle_data)
     _add_challan_evidence(evidence, vehicle_data)
@@ -24,53 +26,78 @@ def build_evidence(vehicle_data: VehicleData) -> list[EvidenceItem]:
     return evidence
 
 
+def _source(
+    source_id: str,
+    name: str,
+    source_type: str,
+) -> EvidenceSource:
+    return EvidenceSource(
+        id=source_id,
+        name=name,
+        type=source_type,
+    )
+
+
+def _provenance(
+    observed_at: str | None = None,
+    retrieved_at: str | None = None,
+    reference_id: str | None = None,
+) -> EvidenceProvenance:
+    return EvidenceProvenance(
+        observed_at=observed_at,
+        retrieved_at=retrieved_at,
+        reference_id=reference_id,
+    )
+
+
 def _add_registration_evidence(
     evidence: list[EvidenceItem],
     vehicle_data: VehicleData,
 ) -> None:
     registration = vehicle_data.registration
 
+    source = _source(
+        "government-registry",
+        "Government vehicle registry",
+        "government_registry",
+    )
+
     if registration is None:
         evidence.append(
             EvidenceItem(
-                id="registration-unavailable",
+                id="registration-status",
                 category="Registration",
-                title="Registration record",
+                title="Registration status",
                 value="Not available",
                 status="unverified",
                 confidence="low",
                 explanation="No registration record was available.",
-                source=_source(
-                    "registration-engine",
-                    "Vehicle registration data",
-                    "registration",
-                ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
     if registration.status == "active":
         status = "verified"
-        confidence = "high"
+        confidence: EvidenceConfidence = "high"
         value = "Active"
-        explanation = (
-            "The vehicle has an active registration record."
-        )
+        explanation = "The vehicle registration is currently active."
     elif registration.status in {"inactive", "suspended"}:
         status = "conflicting"
         confidence = "high"
-        value = registration.status.capitalize()
+        value = registration.status.title()
         explanation = (
-            f"The registration status is {registration.status} and "
-            "requires verification before proceeding."
+            "The vehicle registration is not currently active "
+            "and requires verification."
         )
     else:
         status = "unverified"
         confidence = "low"
         value = "Unknown"
         explanation = (
-            "The registration record exists, but its current status "
-            "could not be verified."
+            "The registration record exists, but its current "
+            "status could not be verified."
         )
 
     evidence.append(
@@ -82,12 +109,10 @@ def _add_registration_evidence(
             status=status,
             confidence=confidence,
             explanation=explanation,
-            source=_source(
-                "registration-engine",
-                "Vehicle registration data",
-                "registration",
+            source=source,
+            provenance=_provenance(
+                observed_at=registration.registration_date,
             ),
-            observed_at=registration.registration_date,
         )
     )
 
@@ -98,6 +123,12 @@ def _add_ownership_evidence(
 ) -> None:
     ownership = vehicle_data.ownership
 
+    source = _source(
+        "government-registry",
+        "Government ownership records",
+        "government_registry",
+    )
+
     if not ownership:
         evidence.append(
             EvidenceItem(
@@ -107,12 +138,9 @@ def _add_ownership_evidence(
                 value="Not available",
                 status="unverified",
                 confidence="low",
-                explanation="No ownership records were available.",
-                source=_source(
-                    "ownership-engine",
-                    "Vehicle ownership data",
-                    "registration",
-                ),
+                explanation="No ownership history was available.",
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
@@ -121,29 +149,26 @@ def _add_ownership_evidence(
 
     if owner_count == 1:
         status = "verified"
-        confidence = "high"
+        confidence: EvidenceConfidence = "high"
         value = "1 owner"
         explanation = (
-            "The available records show a single recorded owner."
+            "The available ownership history shows a single owner."
         )
     elif owner_count == 2:
         status = "verified"
         confidence = "high"
         value = "2 owners"
         explanation = (
-            "The available records show two recorded owners."
+            "The available ownership history shows two owners."
         )
     else:
         status = "partially_verified"
         confidence = "medium"
         value = f"{owner_count} owners"
         explanation = (
-            f"The available records show {owner_count} owners. "
-            "Ownership history should be reviewed in the context "
-            "of the vehicle's age and usage."
+            "The vehicle has multiple owners in the available "
+            "ownership history and the timeline should be reviewed."
         )
-
-    source = ownership[0].source
 
     evidence.append(
         EvidenceItem(
@@ -155,7 +180,9 @@ def _add_ownership_evidence(
             confidence=confidence,
             explanation=explanation,
             source=source,
-            observed_at=ownership[-1].start_date,
+            provenance=_provenance(
+                observed_at=ownership[-1].start_date,
+            ),
         )
     )
 
@@ -165,6 +192,12 @@ def _add_insurance_evidence(
     vehicle_data: VehicleData,
 ) -> None:
     insurance = vehicle_data.insurance
+
+    source = _source(
+        "insurance-engine",
+        "Vehicle insurance data",
+        "insurance",
+    )
 
     if insurance is None:
         evidence.append(
@@ -176,18 +209,15 @@ def _add_insurance_evidence(
                 status="unverified",
                 confidence="low",
                 explanation="No insurance record was available.",
-                source=_source(
-                    "insurance-engine",
-                    "Vehicle insurance data",
-                    "insurance",
-                ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
     if insurance.status == "active":
         status = "verified"
-        confidence = "high"
+        confidence: EvidenceConfidence = "high"
         value = "Active"
         explanation = "The available insurance record is active."
     elif insurance.status == "expired":
@@ -216,12 +246,10 @@ def _add_insurance_evidence(
             status=status,
             confidence=confidence,
             explanation=explanation,
-            source=_source(
-                "insurance-engine",
-                "Vehicle insurance data",
-                "insurance",
+            source=source,
+            provenance=_provenance(
+                observed_at=insurance.expiry_date,
             ),
-            observed_at=insurance.expiry_date,
         )
     )
 
@@ -231,6 +259,12 @@ def _add_puc_evidence(
     vehicle_data: VehicleData,
 ) -> None:
     puc = vehicle_data.puc
+
+    source = _source(
+        "government-registry",
+        "Pollution certificate records",
+        "government_registry",
+    )
 
     if puc is None:
         evidence.append(
@@ -242,38 +276,37 @@ def _add_puc_evidence(
                 status="unverified",
                 confidence="low",
                 explanation="No PUC record was available.",
-                source=_source(
-                    "puc-engine",
-                    "Vehicle PUC data",
-                    "compliance",
-                ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
     if puc.status == "valid":
         status = "verified"
-        confidence = "high"
+        confidence: EvidenceConfidence = "high"
         value = "Valid"
-        explanation = "The available PUC record is valid."
+        explanation = "The available PUC record is currently valid."
     elif puc.status == "expired":
         status = "partially_verified"
         confidence = "high"
         value = "Expired"
         explanation = (
-            "The available PUC record has expired and requires "
-            "renewal or verification."
+            "The available PUC record has expired and should be renewed."
         )
     elif puc.status == "not_available":
         status = "unverified"
         confidence = "low"
         value = "Not available"
-        explanation = "No current PUC certificate was available."
+        explanation = "No current PUC certificate is available."
     else:
         status = "unverified"
         confidence = "low"
         value = "Unknown"
-        explanation = "The PUC status could not be verified."
+        explanation = (
+            "A PUC record exists, but its current status "
+            "could not be verified."
+        )
 
     evidence.append(
         EvidenceItem(
@@ -284,12 +317,10 @@ def _add_puc_evidence(
             status=status,
             confidence=confidence,
             explanation=explanation,
-            source=_source(
-                "puc-engine",
-                "Vehicle PUC data",
-                "compliance",
+            source=source,
+            provenance=_provenance(
+                observed_at=puc.expiry_date,
             ),
-            observed_at=puc.expiry_date,
         )
     )
 
@@ -300,6 +331,12 @@ def _add_finance_evidence(
 ) -> None:
     finance = vehicle_data.finance
 
+    source = _source(
+        "finance-registry",
+        "Vehicle finance records",
+        "finance",
+    )
+
     if finance is None:
         evidence.append(
             EvidenceItem(
@@ -309,34 +346,43 @@ def _add_finance_evidence(
                 value="Not available",
                 status="unverified",
                 confidence="low",
-                explanation="No finance record was available.",
-                source=_source(
-                    "finance-engine",
-                    "Vehicle finance data",
-                    "finance",
+                explanation=(
+                    "No vehicle finance record was available."
                 ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
     if finance.status == "closed":
         status = "verified"
-        confidence = "high"
+        confidence: EvidenceConfidence = "high"
         value = "Closed"
-        explanation = "The available finance record is closed."
+        explanation = (
+            "The available finance record shows that financing is closed."
+        )
+        observed_at = finance.closure_date
+
     elif finance.status == "active":
         status = "partially_verified"
         confidence = "high"
         value = "Active"
         explanation = (
-            "An active finance record exists. Loan closure and "
-            "lien-release documentation should be verified."
+            "The vehicle has an active finance record and lender/lien "
+            "details should be verified before purchase."
         )
+        observed_at = finance.start_date
+
     else:
         status = "unverified"
         confidence = "low"
         value = "Unknown"
-        explanation = "The finance status could not be verified."
+        explanation = (
+            "A finance record exists, but its current status "
+            "could not be verified."
+        )
+        observed_at = finance.start_date
 
     evidence.append(
         EvidenceItem(
@@ -347,77 +393,76 @@ def _add_finance_evidence(
             status=status,
             confidence=confidence,
             explanation=explanation,
-            source=_source(
-                "finance-engine",
-                "Vehicle finance data",
-                "finance",
+            source=source,
+            provenance=_provenance(
+                observed_at=observed_at,
             ),
-            observed_at=finance.closure_date or finance.start_date,
         )
     )
 
 
-def _add_service_evidence(
+def _add_service_history_evidence(
     evidence: list[EvidenceItem],
     vehicle_data: VehicleData,
 ) -> None:
-    records = vehicle_data.service_history
+    service_history = vehicle_data.service_history
 
-    if not records:
+    source = _source(
+        "service-history",
+        "Vehicle service history",
+        "service",
+    )
+
+    if not service_history:
         evidence.append(
             EvidenceItem(
                 id="service-history",
-                category="Maintenance",
+                category="Service",
                 title="Service history",
-                value="Not available",
+                value="No service records",
                 status="unverified",
                 confidence="low",
-                explanation="No service records were available.",
-                source=_source(
-                    "service-engine",
-                    "Vehicle service data",
-                    "maintenance",
+                explanation=(
+                    "No service records were available for review."
                 ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
-    records_with_odometer = [
-        record for record in records if record.odometer_km is not None
-    ]
+    has_complete_odometer = all(
+        record.odometer_km is not None
+        for record in service_history
+    )
 
-    if len(records_with_odometer) == len(records):
+    if has_complete_odometer:
         status = "verified"
-        confidence = "high"
-        value = f"{len(records)} records"
+        confidence: EvidenceConfidence = "high"
         explanation = (
-            "Service records are available with odometer readings "
-            "for the recorded maintenance events."
+            "Service records are available with odometer observations."
         )
     else:
         status = "partially_verified"
         confidence = "medium"
-        value = f"{len(records)} records"
         explanation = (
             "Service records are available, but some records do not "
-            "include odometer readings."
+            "contain odometer observations."
         )
 
     evidence.append(
         EvidenceItem(
             id="service-history",
-            category="Maintenance",
+            category="Service",
             title="Service history",
-            value=value,
+            value=f"{len(service_history)} service records",
             status=status,
             confidence=confidence,
             explanation=explanation,
-            source=_source(
-                "service-engine",
-                "Vehicle service data",
-                "maintenance",
+            source=source,
+            provenance=_provenance(
+                observed_at=service_history[-1].service_date,
             ),
-            observed_at=records[-1].service_date,
         )
     )
 
@@ -426,77 +471,100 @@ def _add_odometer_evidence(
     evidence: list[EvidenceItem],
     vehicle_data: VehicleData,
 ) -> None:
-    records = sorted(
-        vehicle_data.odometer_history,
-        key=lambda record: record.observed_at,
+    odometer_history = vehicle_data.odometer_history
+
+    source = _source(
+        "odometer-history",
+        "Vehicle odometer records",
+        "service",
     )
 
-    if not records:
+    if not odometer_history:
         evidence.append(
             EvidenceItem(
                 id="mileage-consistency",
                 category="Mileage",
-                title="Mileage consistency",
+                title="Odometer consistency",
                 value="Not available",
                 status="unverified",
                 confidence="low",
-                explanation="No odometer records were available.",
-                source=_source(
-                    "odometer-engine",
-                    "Vehicle mileage data",
-                    "vehicle_history",
+                explanation=(
+                    "No usable odometer observations were available."
                 ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
-    decreases = [
-        (previous, current)
-        for previous, current in zip(records, records[1:])
-        if current.odometer_km < previous.odometer_km
-    ]
+    is_consistent = all(
+        current.odometer_km >= previous.odometer_km
+        for previous, current in zip(
+            odometer_history,
+            odometer_history[1:],
+        )
+    )
 
-    source = records[-1].source
-
-    if decreases:
-        previous, current = decreases[0]
-
+    if is_consistent:
         evidence.append(
             EvidenceItem(
                 id="mileage-consistency",
                 category="Mileage",
-                title="Mileage consistency",
-                value=(
-                    f"Inconsistent: {previous.odometer_km:,} km to "
-                    f"{current.odometer_km:,} km"
-                ),
-                status="conflicting",
+                title="Odometer consistency",
+                value="Consistent",
+                status="verified",
                 confidence="high",
                 explanation=(
-                    "A later odometer observation is lower than an "
-                    "earlier recorded reading. The discrepancy requires "
-                    "investigation and supporting documentation."
+                    "The available odometer observations increase "
+                    "consistently over time."
                 ),
                 source=source,
-                observed_at=current.observed_at,
+                provenance=_provenance(
+                    observed_at=odometer_history[-1].observed_at,
+                ),
             )
         )
         return
+
+    conflict_previous = None
+    conflict_current = None
+
+    for previous, current in zip(
+        odometer_history,
+        odometer_history[1:],
+    ):
+        if current.odometer_km < previous.odometer_km:
+            conflict_previous = previous
+            conflict_current = current
+            break
+
+    if conflict_previous is not None and conflict_current is not None:
+        value = (
+            f"Inconsistent: {conflict_previous.odometer_km:,} km to "
+            f"{conflict_current.odometer_km:,} km"
+        )
+        observed_at = conflict_current.observed_at
+    else:
+        value = "Inconsistent"
+        observed_at = odometer_history[-1].observed_at
 
     evidence.append(
         EvidenceItem(
             id="mileage-consistency",
             category="Mileage",
-            title="Mileage consistency",
-            value="Consistent",
-            status="verified",
+            title="Odometer consistency",
+            value=value,
+            status="conflicting",
             confidence="high",
             explanation=(
-                "The available odometer records increase consistently "
-                "over time."
+                "A later odometer observation is lower than an earlier "
+                "observation. This requires investigation using service "
+                "invoices, inspection records, or other independent evidence."
             ),
             source=source,
-            observed_at=records[-1].observed_at,
+            provenance=_provenance(
+                observed_at=observed_at,
+            ),
         )
     )
 
@@ -505,9 +573,15 @@ def _add_accident_evidence(
     evidence: list[EvidenceItem],
     vehicle_data: VehicleData,
 ) -> None:
-    accidents = vehicle_data.accident_history
+    accident_history = vehicle_data.accident_history
 
-    if not accidents:
+    source = _source(
+        "insurance-claims",
+        "Vehicle accident and claims data",
+        "insurance",
+    )
+
+    if not accident_history:
         evidence.append(
             EvidenceItem(
                 id="accident-history",
@@ -517,68 +591,95 @@ def _add_accident_evidence(
                 status="verified",
                 confidence="medium",
                 explanation=(
-                    "No accident records were present in the available "
-                    "data. This does not rule out incidents that were "
-                    "not reported to the available sources."
+                    "No accidents were recorded in the available data. "
+                    "This does not rule out incidents that were never reported."
                 ),
-                source=_source(
-                    "accident-engine",
-                    "Vehicle accident data",
-                    "vehicle_history",
-                ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
     major_accidents = [
         accident
-        for accident in accidents
+        for accident in accident_history
         if accident.severity == "major"
     ]
 
     moderate_accidents = [
         accident
-        for accident in accidents
+        for accident in accident_history
         if accident.severity == "moderate"
     ]
 
     if major_accidents:
-        status = "conflicting"
-        confidence = "high"
-        value = f"{len(accidents)} recorded accident(s)"
-        explanation = (
-            f"The available records contain {len(major_accidents)} "
-            "major accident signal(s). The underlying claims and "
-            "repair records should be reviewed."
+        latest = major_accidents[-1]
+
+        evidence.append(
+            EvidenceItem(
+                id="accident-history",
+                category="Accident",
+                title="Accident history",
+                value="Major accident recorded",
+                status="conflicting",
+                confidence="high",
+                explanation=(
+                    "A major accident is present in the available history "
+                    "and should be independently verified using claim, "
+                    "repair, and inspection records."
+                ),
+                source=source,
+                provenance=_provenance(
+                    observed_at=latest.date,
+                    reference_id=latest.id,
+                ),
+            )
         )
-    elif moderate_accidents:
-        status = "partially_verified"
-        confidence = "high"
-        value = f"{len(accidents)} recorded accident(s)"
-        explanation = (
-            "The available records contain moderate accident signals "
-            "that should be reviewed with repair documentation."
+        return
+
+    if moderate_accidents:
+        latest = moderate_accidents[-1]
+
+        evidence.append(
+            EvidenceItem(
+                id="accident-history",
+                category="Accident",
+                title="Accident history",
+                value="Moderate accident recorded",
+                status="partially_verified",
+                confidence="high",
+                explanation=(
+                    "A moderate accident is present in the available "
+                    "accident or claims history."
+                ),
+                source=source,
+                provenance=_provenance(
+                    observed_at=latest.date,
+                    reference_id=latest.id,
+                ),
+            )
         )
-    else:
-        status = "partially_verified"
-        confidence = "medium"
-        value = f"{len(accidents)} recorded accident(s)"
-        explanation = (
-            "The available records contain accident signals. "
-            "Severity and repair impact should be verified."
-        )
+        return
+
+    latest = accident_history[-1]
 
     evidence.append(
         EvidenceItem(
             id="accident-history",
             category="Accident",
             title="Accident history",
-            value=value,
-            status=status,
-            confidence=confidence,
-            explanation=explanation,
-            source=accidents[0].source,
-            observed_at=accidents[0].date,
+            value="Accident history requires review",
+            status="partially_verified",
+            confidence="medium",
+            explanation=(
+                "Accident records exist, but the available records "
+                "do not indicate a major or moderate accident."
+            ),
+            source=source,
+            provenance=_provenance(
+                observed_at=latest.date,
+                reference_id=latest.id,
+            ),
         )
     )
 
@@ -589,42 +690,49 @@ def _add_challan_evidence(
 ) -> None:
     challans = vehicle_data.challans
 
+    source = _source(
+        "government-registry",
+        "Vehicle challan records",
+        "government_registry",
+    )
+
     if not challans:
         evidence.append(
             EvidenceItem(
                 id="challan-status",
                 category="Compliance",
-                title="Traffic challans",
+                title="Challan status",
                 value="No recorded challans",
                 status="verified",
                 confidence="medium",
                 explanation=(
-                    "No traffic challans were present in the available "
-                    "data."
+                    "No challan records were available in the supplied data."
                 ),
-                source=_source(
-                    "challan-engine",
-                    "Vehicle challan data",
-                    "compliance",
-                ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
     open_challans = [
-        challan for challan in challans if challan.status == "open"
+        challan
+        for challan in challans
+        if challan.status == "open"
     ]
 
     if open_challans:
         total_amount = sum(
-            challan.amount or 0 for challan in open_challans
+            challan.amount or 0
+            for challan in open_challans
         )
+
+        latest = open_challans[-1]
 
         evidence.append(
             EvidenceItem(
                 id="challan-status",
                 category="Compliance",
-                title="Traffic challans",
+                title="Challan status",
                 value=(
                     f"{len(open_challans)} open challan(s), "
                     f"₹{total_amount:,.0f}"
@@ -632,30 +740,36 @@ def _add_challan_evidence(
                 status="partially_verified",
                 confidence="high",
                 explanation=(
-                    "Open traffic challans are present in the available "
-                    "records and should be resolved or verified before "
-                    "purchase."
+                    "Open challans are present and should be verified "
+                    "and resolved before purchase."
                 ),
-                source=open_challans[0].source,
-                observed_at=open_challans[0].date,
+                source=source,
+                provenance=_provenance(
+                    observed_at=latest.date,
+                    reference_id=latest.id,
+                ),
             )
         )
         return
+
+    latest = challans[-1]
 
     evidence.append(
         EvidenceItem(
             id="challan-status",
             category="Compliance",
-            title="Traffic challans",
-            value=f"{len(challans)} recorded, none open",
+            title="Challan status",
+            value="No open challans",
             status="verified",
             confidence="medium",
             explanation=(
-                "Recorded challans are present, but none are currently "
-                "marked as open."
+                "No open challans were found in the available records."
             ),
-            source=challans[0].source,
-            observed_at=challans[-1].date,
+            source=source,
+            provenance=_provenance(
+                observed_at=latest.date,
+                reference_id=latest.id,
+            ),
         )
     )
 
@@ -666,52 +780,47 @@ def _add_manufacturer_evidence(
 ) -> None:
     manufacturer = vehicle_data.manufacturer
 
+    source = _source(
+        "manufacturer-record",
+        "Vehicle manufacturer records",
+        "manufacturer",
+    )
+
     if manufacturer is None:
         evidence.append(
             EvidenceItem(
                 id="manufacturer-details",
-                category="Manufacturer",
+                category="Vehicle",
                 title="Manufacturer details",
                 value="Not available",
                 status="unverified",
                 confidence="low",
-                explanation="No manufacturer record was available.",
-                source=_source(
-                    "manufacturer-engine",
-                    "Manufacturer vehicle data",
-                    "manufacturer",
+                explanation=(
+                    "No manufacturer information was available."
                 ),
+                source=source,
+                provenance=_provenance(),
             )
         )
         return
 
-    model = manufacturer.model or "Unknown model"
+    model = manufacturer.model or "Unknown"
 
     evidence.append(
         EvidenceItem(
             id="manufacturer-details",
-            category="Manufacturer",
+            category="Vehicle",
             title="Manufacturer details",
             value=f"{manufacturer.manufacturer} {model}",
             status="verified",
             confidence="high",
             explanation=(
                 "Manufacturer and model information is available "
-                "from the vehicle data provider."
+                "from the supplied vehicle record."
             ),
-            source=_source(
-                "manufacturer-engine",
-                "Manufacturer vehicle data",
-                "manufacturer",
+            source=source,
+            provenance=_provenance(
+                observed_at=manufacturer.manufacturing_date,
             ),
-            observed_at=manufacturer.manufacturing_date,
         )
-    )
-
-
-def _source(source_id: str, name: str, source_type: str) -> EvidenceSource:
-    return EvidenceSource(
-        id=source_id,
-        name=name,
-        type=source_type,
     )
