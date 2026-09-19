@@ -1,9 +1,33 @@
 from fastapi.testclient import TestClient
 
+from app.domain import vehicle_service
 from app.main import app
+from app.schemas.vehicle.models import (
+    AIGrounding,
+    AIInterpretation,
+)
 
 
 client = TestClient(app)
+
+
+class FakeAIServiceClient:
+    def interpret(self, request) -> AIInterpretation:
+        return AIInterpretation(
+            summary="Test AI summary.",
+            reasoning="Test AI reasoning.",
+            recommendation="Test AI recommendation.",
+            supporting_evidence_ids=[],
+            knowledge_references=[],
+            grounding=AIGrounding(
+                status="insufficient",
+                evidence_count=0,
+                knowledge_count=0,
+            ),
+        )
+
+
+vehicle_service._ai_client = FakeAIServiceClient()
 
 
 def test_get_demo_vehicle() -> None:
@@ -74,12 +98,18 @@ def test_lookup_clean_vehicle() -> None:
     assert len(data["data"]["serviceHistory"]) == 4
     assert len(data["data"]["accidentHistory"]) == 0
     assert len(data["data"]["challans"]) == 0
+
     assert data["ai"]["summary"]
     assert data["ai"]["reasoning"]
     assert data["ai"]["recommendation"]
 
-    assert "very high trust" in data["ai"]["summary"].lower()
-    assert "no significant risks" in data["ai"]["summary"].lower()
+    assert isinstance(data["ai"]["supportingEvidenceIds"], list)
+    assert isinstance(data["ai"]["knowledgeReferences"], list)
+
+    assert data["ai"]["grounding"]["status"] == "insufficient"
+    assert data["ai"]["grounding"]["evidenceCount"] == 0
+    assert data["ai"]["grounding"]["knowledgeCount"] == 0
+
 
 def test_lookup_moderate_risk_vehicle() -> None:
     response = client.get(
@@ -105,13 +135,17 @@ def test_lookup_moderate_risk_vehicle() -> None:
 
     assert len(data["data"]["challans"]) == 1
     assert data["data"]["challans"][0]["status"] == "paid"
+
     assert data["ai"]["summary"]
     assert data["ai"]["reasoning"]
     assert data["ai"]["recommendation"]
 
-    assert "moderate trust" in data["ai"]["summary"].lower()
-    assert "PUC certificate has expired" in data["ai"]["reasoning"]
-    assert "Multiple ownership history" in data["ai"]["reasoning"]
+    assert isinstance(data["ai"]["supportingEvidenceIds"], list)
+    assert isinstance(data["ai"]["knowledgeReferences"], list)
+
+    assert data["ai"]["grounding"]["status"] == "insufficient"
+    assert data["ai"]["grounding"]["evidenceCount"] == 0
+    assert data["ai"]["grounding"]["knowledgeCount"] == 0
 
 
 def test_lookup_high_risk_vehicle() -> None:
@@ -142,13 +176,17 @@ def test_lookup_high_risk_vehicle() -> None:
 
     assert odometer_history[0]["odometerKm"] < odometer_history[1]["odometerKm"]
     assert odometer_history[2]["odometerKm"] < odometer_history[1]["odometerKm"]
+
     assert data["ai"]["summary"]
     assert data["ai"]["reasoning"]
     assert data["ai"]["recommendation"]
 
-    assert "very low trust" in data["ai"]["summary"].lower()
-    assert "Odometer inconsistency detected" in data["ai"]["reasoning"]
-    assert "Major accident history requires investigation" in data["ai"]["reasoning"]
+    assert isinstance(data["ai"]["supportingEvidenceIds"], list)
+    assert isinstance(data["ai"]["knowledgeReferences"], list)
+
+    assert data["ai"]["grounding"]["status"] == "insufficient"
+    assert data["ai"]["grounding"]["evidenceCount"] == 0
+    assert data["ai"]["grounding"]["knowledgeCount"] == 0
 
 
 def test_lookup_normalizes_registration() -> None:

@@ -130,10 +130,42 @@ class DecisionAssessment(BaseModel):
     )
 
 
+class AIKnowledgeReference(BaseModel):
+    id: str
+    title: str
+    category: str
+    relevance: str
+
+
+class AIGrounding(BaseModel):
+    status: Literal[
+        "grounded",
+        "partially_grounded",
+        "insufficient",
+    ]
+    evidence_count: int = Field(
+        ge=0,
+        serialization_alias="evidenceCount",
+    )
+    knowledge_count: int = Field(
+        ge=0,
+        serialization_alias="knowledgeCount",
+    )
+
+
 class AIInterpretation(BaseModel):
     summary: str
     reasoning: str
     recommendation: str
+    supporting_evidence_ids: list[str] = Field(
+        default_factory=list,
+        serialization_alias="supportingEvidenceIds",
+    )
+    knowledge_references: list[AIKnowledgeReference] = Field(
+        default_factory=list,
+        serialization_alias="knowledgeReferences",
+    )
+    grounding: AIGrounding
 
 
 class VehicleIdentity(BaseModel):

@@ -1,4 +1,5 @@
-from app.intelligence.ai.explanation import build_ai_interpretation
+from app.intelligence.ai.client import AIServiceClient
+from app.intelligence.ai.request_builder import build_ai_request
 from app.intelligence.evidence.engine import build_evidence
 from app.intelligence.risk.engine import build_risks
 from app.intelligence.trust.engine import build_trust_assessment
@@ -16,8 +17,8 @@ from app.schemas.vehicle.models import (
     VehicleIntelligence,
 )
 
-
 _provider = MockIndiaProvider()
+_ai_client = AIServiceClient()
 
 
 def get_vehicle(vehicle_id: str) -> VehicleIntelligence | None:
@@ -28,6 +29,22 @@ def get_vehicle(vehicle_id: str) -> VehicleIntelligence | None:
 
 
 def get_vehicle_by_registration(
+    registration: str,
+) -> VehicleIntelligence | None:
+    vehicle = _build_vehicle_from_registration(registration)
+
+    if vehicle is None:
+        return None
+
+    ai_request = build_ai_request(vehicle)
+    ai = _ai_client.interpret(ai_request)
+
+    vehicle.ai = ai
+
+    return vehicle
+
+
+def _build_vehicle_from_registration(
     registration: str,
 ) -> VehicleIntelligence | None:
     vehicle_data = _provider.get_vehicle_by_registration(registration)
@@ -54,14 +71,12 @@ def get_vehicle_by_registration(
         trust=trust,
         evidence_count=len(evidence),
     )
-    ai = build_ai_interpretation(
-        evidence=evidence,
-        risks=risks,
-        trust=trust,
-    )
 
     return VehicleIntelligence(
-        id=f"vehicle-{vehicle_data.registration.registration_number.replace(' ', '-').lower()}",
+        id=(
+            "vehicle-"
+            f"{vehicle_data.registration.registration_number.replace(' ', '-').lower()}"
+        ),
         identity=VehicleIdentity(
             make=manufacturer.manufacturer,
             model=manufacturer.model or "Unknown",
@@ -78,9 +93,17 @@ def get_vehicle_by_registration(
         risks=risks,
         trust=trust,
         decision=decision,
-        ai=ai,
+        ai=AIInterpretation(
+            summary="",
+            reasoning="",
+            recommendation="",
+            grounding={
+                "status": "insufficient",
+                "evidence_count": 0,
+                "knowledge_count": 0,
+            },
+        ),
     )
-
 
 def _build_demo_vehicle() -> VehicleIntelligence:
     evidence = _build_demo_evidence()
@@ -249,9 +272,7 @@ def _build_demo_trust() -> TrustAssessment:
 
 def _build_demo_ai() -> AIInterpretation:
     return AIInterpretation(
-        summary=(
-            "The available evidence indicates a relatively low-risk vehicle."
-        ),
+        summary=("The available evidence indicates a relatively low-risk vehicle."),
         reasoning=(
             "Ownership and accident indicators look healthy. Mileage "
             "records are consistent, while the service history contains "
@@ -261,6 +282,17 @@ def _build_demo_ai() -> AIInterpretation:
             "Proceed with additional service-history verification before "
             "making a purchase decision."
         ),
+        supporting_evidence_ids=[
+            "ownership-history",
+            "mileage-consistency",
+            "service-history",
+        ],
+        knowledge_references=[],
+        grounding={
+            "status": "partially_grounded",
+            "evidence_count": 3,
+            "knowledge_count": 0,
+        },
     )
 
 
