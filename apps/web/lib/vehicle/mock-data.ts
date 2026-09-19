@@ -153,6 +153,16 @@ export const demoVehicle: VehicleIntelligence = {
 
     recommendation:
       "Proceed with additional service-history verification before making a purchase decision.",
+
+    supportingEvidenceIds: ["service-history"],
+
+    knowledgeReferences: [],
+
+    grounding: {
+      status: "partially_grounded",
+      evidenceCount: 1,
+      knowledgeCount: 0,
+    },
   },
 };
 

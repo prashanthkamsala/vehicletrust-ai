@@ -1,12 +1,15 @@
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+
 import { getVehicleByRegistration } from "@/lib/api/client";
 import type { VehicleIntelligence } from "@/lib/vehicle/types";
-import { TrustBreakdown } from "@/components/vehicle/trust-breakdown";
+
+import { AIAssessment } from "@/components/vehicle/ai-assessment";
+import { DecisionSummary } from "@/components/vehicle/decision-summary";
 import { EvidenceExplorer } from "@/components/vehicle/evidence-explorer";
 import { RiskEvidenceCard } from "@/components/vehicle/risk-evidence-card";
-import { DecisionSummary } from "@/components/vehicle/decision-summary";
+import { TrustBreakdown } from "@/components/vehicle/trust-breakdown";
 
 type VehiclePageProps = {
   params: Promise<{ id: string }>;
@@ -106,61 +109,10 @@ export default async function VehiclePage({
             </div>
 
             <div className="p-6 sm:p-8 lg:p-10">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.16em] text-zinc-500">
-                  AI assessment
-                </p>
-
-                <h2 className="mt-2 text-2xl font-semibold tracking-tight text-zinc-950">
-                  What the available evidence tells us
-                </h2>
-
-                <p className="mt-5 max-w-3xl text-base font-medium leading-7 text-zinc-800">
-                  {vehicle.ai.summary}
-                </p>
-
-                <p className="mt-4 max-w-3xl text-sm leading-7 text-zinc-600">
-                  {vehicle.ai.reasoning}
-                </p>
-              </div>
-
-              <div className="mt-8 grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
-                    Evidence
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-zinc-950">
-                    {vehicle.evidence.length}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    evidence items analyzed
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
-                    Risks
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold text-zinc-950">
-                    {vehicle.risks.length}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    issues requiring attention
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-zinc-200 bg-zinc-50 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-zinc-500">
-                    Confidence
-                  </p>
-                  <p className="mt-2 text-2xl font-semibold capitalize text-zinc-950">
-                    {vehicle.trust.confidence}
-                  </p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    evidence confidence
-                  </p>
-                </div>
-              </div>
+              <AIAssessment
+                ai={vehicle.ai}
+                evidence={vehicle.evidence}
+              />
             </div>
           </div>
 
@@ -171,11 +123,13 @@ export default async function VehiclePage({
               </span>
 
               <span>
-                {vehicle.evidence.length} evidence items · {vehicle.risks.length} risks
+                {vehicle.evidence.length} evidence items ·{" "}
+                {vehicle.risks.length} risks
               </span>
             </div>
           </div>
         </section>
+
         <div className="mt-6">
           <DecisionSummary
             recommendation={vehicle.decision.recommendation}
@@ -194,6 +148,7 @@ export default async function VehiclePage({
           confidence={vehicle.trust.confidence}
           factors={vehicle.trust.factors}
         />
+
         {vehicle.risks.length > 0 && (
           <section className="mt-6 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">
             <div className="border-b border-zinc-200 px-6 py-6 sm:px-8 lg:px-10">
@@ -207,7 +162,8 @@ export default async function VehiclePage({
                 </h2>
 
                 <p className="mt-1 max-w-2xl text-sm text-zinc-500">
-                  Each identified risk is linked to the evidence that supports it.
+                  Each identified risk is linked to the evidence that supports
+                  it.
                 </p>
               </div>
             </div>
@@ -223,6 +179,7 @@ export default async function VehiclePage({
             </div>
           </section>
         )}
+
         <div className="mt-6">
           <EvidenceExplorer evidence={vehicle.evidence} />
         </div>

@@ -169,10 +169,31 @@ export interface DecisionAssessment {
   priorityRiskIds: string[];
 }
 
+export type AIGroundingStatus =
+  | "grounded"
+  | "partially_grounded"
+  | "insufficient";
+
+export interface AIKnowledgeReference {
+  id: string;
+  title: string;
+  category: string;
+  relevance: string;
+}
+
+export interface AIGrounding {
+  status: AIGroundingStatus;
+  evidenceCount: number;
+  knowledgeCount: number;
+}
+
 export interface AIInterpretation {
   summary: string;
   reasoning: string;
   recommendation: string;
+  supportingEvidenceIds: string[];
+  knowledgeReferences: AIKnowledgeReference[];
+  grounding: AIGrounding;
 }
 
 export interface VehicleIdentity {

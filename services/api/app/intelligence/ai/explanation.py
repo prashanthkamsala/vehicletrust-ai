@@ -1,4 +1,5 @@
 from app.schemas.vehicle.models import (
+    AIGrounding,
     AIInterpretation,
     EvidenceItem,
     RiskItem,
@@ -13,11 +14,31 @@ def build_ai_interpretation(
 ) -> AIInterpretation:
     """Build an evidence-backed vehicle explanation."""
 
+    supporting_evidence_ids = _select_supporting_evidence(
+        evidence=evidence,
+        risks=risks,
+    )
+
     if not evidence:
         return AIInterpretation(
-            summary="Insufficient vehicle evidence is available for a reliable assessment.",
-            reasoning="The intelligence engine did not receive enough evidence to explain the vehicle's trust profile.",
-            recommendation="Obtain additional vehicle records before making a decision.",
+            summary=(
+                "Insufficient vehicle evidence is available for a reliable "
+                "assessment."
+            ),
+            reasoning=(
+                "The intelligence engine did not receive enough evidence "
+                "to explain the vehicle's trust profile."
+            ),
+            recommendation=(
+                "Obtain additional vehicle records before making a decision."
+            ),
+            supporting_evidence_ids=[],
+            knowledge_references=[],
+            grounding=AIGrounding(
+                status="insufficient",
+                evidence_count=0,
+                knowledge_count=0,
+            ),
         )
 
     if not risks:
@@ -29,20 +50,30 @@ def build_ai_interpretation(
             reasoning=_build_reasoning(evidence, trust),
             recommendation=(
                 "The available evidence supports proceeding, subject to "
-                "normal physical inspection and verification of original documents."
+                "normal physical inspection and verification of original "
+                "documents."
+            ),
+            supporting_evidence_ids=supporting_evidence_ids,
+            knowledge_references=[],
+            grounding=AIGrounding(
+                status="partially_grounded",
+                evidence_count=len(supporting_evidence_ids),
+                knowledge_count=0,
             ),
         )
 
     high_risks = [
         risk for risk in risks if risk.severity in {"high", "critical"}
     ]
-    medium_risks = [risk for risk in risks if risk.severity == "medium"]
+    medium_risks = [
+        risk for risk in risks if risk.severity == "medium"
+    ]
 
     summary = _build_risk_summary(
-    trust,
-    risks,
-    high_risks,
-    medium_risks,
+        trust,
+        risks,
+        high_risks,
+        medium_risks,
     )
     reasoning = _build_risk_reasoning(evidence, risks, trust)
     recommendation = _build_recommendation(risks)
@@ -51,7 +82,34 @@ def build_ai_interpretation(
         summary=summary,
         reasoning=reasoning,
         recommendation=recommendation,
+        supporting_evidence_ids=supporting_evidence_ids,
+        knowledge_references=[],
+        grounding=AIGrounding(
+            status="partially_grounded",
+            evidence_count=len(supporting_evidence_ids),
+            knowledge_count=0,
+        ),
     )
+
+
+def _select_supporting_evidence(
+    evidence: list[EvidenceItem],
+    risks: list[RiskItem],
+) -> list[str]:
+    """Select evidence directly associated with identified risks."""
+
+    selected_ids: list[str] = []
+
+    for risk in risks:
+        for evidence_id in risk.evidence_ids:
+            if evidence_id in {item.id for item in evidence}:
+                if evidence_id not in selected_ids:
+                    selected_ids.append(evidence_id)
+
+    if selected_ids:
+        return selected_ids[:5]
+
+    return [item.id for item in evidence[:3]]
 
 
 def _build_reasoning(
@@ -71,8 +129,8 @@ def _build_reasoning(
 
         return (
             f"The trust assessment is supported by positive signals including "
-            f"{signals}. The available evidence should still be verified against "
-            "original documents and the vehicle's physical condition."
+            f"{signals}. The available evidence should still be verified "
+            "against original documents and the vehicle's physical condition."
         )
 
     return (
@@ -107,7 +165,8 @@ def _build_risk_summary(
     return (
         f"The vehicle has a {trust.assessment.lower()} profile with "
         f"{total_risks} {risk_word} identified. "
-        "The identified issues should be reviewed before making a final decision."
+        "The identified issues should be reviewed before making a final "
+        "decision."
     )
 
 
@@ -116,6 +175,8 @@ def _build_risk_reasoning(
     risks: list[RiskItem],
     trust: TrustAssessment,
 ) -> str:
+    """Explain the identified risks and their relationship to trust."""
+
     risk_titles = [risk.title for risk in risks[:5]]
 
     if not risk_titles:
@@ -152,7 +213,8 @@ def _build_recommendation(risks: list[RiskItem]) -> str:
         )
 
     cleaned_actions = [
-        action.rstrip(".; ") for action in actions[:3]
+        action.rstrip(".; ")
+        for action in actions[:3]
     ]
 
     if len(cleaned_actions) == 1:
