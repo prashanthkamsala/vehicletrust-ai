@@ -8,8 +8,10 @@ version = "0.1.0"
 description = "AI and RAG service for VehicleTrust AI"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+    "fastapi>=0.115,<1.0",
     "httpx>=0.28,<1.0",
     "pydantic>=2.11,<3.0",
+    "uvicorn[standard]>=0.34,<1.0",
 ]
 
 [project.optional-dependencies]
