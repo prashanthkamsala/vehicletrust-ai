@@ -1,8 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { CheckCircle2, ShieldCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
+
+import { ApiError, getVehicleByRegistration } from "@/lib/api/client";
 
 const analysisSteps = [
   "Validating vehicle identity",
@@ -11,7 +13,9 @@ const analysisSteps = [
   "Preparing vehicle intelligence",
 ];
 
-const STEP_DURATION = 900;
+const STEP_DURATION = 700;
+
+type AnalysisState = "analyzing" | "not_found" | "error";
 
 function AnalyzeContent() {
   const router = useRouter();
@@ -19,6 +23,8 @@ function AnalyzeContent() {
   const vehicle = searchParams.get("vehicle");
 
   const [activeStep, setActiveStep] = useState(0);
+  const [state, setState] = useState<AnalysisState>("analyzing");
+  const [errorMessage, setErrorMessage] = useState("");
 
   useEffect(() => {
     if (!vehicle?.trim()) {
@@ -26,15 +32,50 @@ function AnalyzeContent() {
       return;
     }
 
-    const timer = window.setInterval(() => {
+    let cancelled = false;
+
+    async function analyzeVehicle() {
+      try {
+        await getVehicleByRegistration(vehicle!);
+
+        if (cancelled) {
+          return;
+        }
+
+        setActiveStep(analysisSteps.length - 1);
+
+        window.setTimeout(() => {
+          if (!cancelled) {
+            router.replace(
+              `/vehicles/${encodeURIComponent(vehicle!)}`,
+            );
+          }
+        }, 500);
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        if (error instanceof ApiError && error.status === 404) {
+          setState("not_found");
+          setErrorMessage(
+            `No vehicle was found for "${vehicle}".`,
+          );
+          return;
+        }
+
+        setState("error");
+        setErrorMessage(
+          "We could not complete the vehicle analysis. Please try again.",
+        );
+      }
+    }
+
+    analyzeVehicle();
+
+    const progressTimer = window.setInterval(() => {
       setActiveStep((currentStep) => {
         if (currentStep >= analysisSteps.length - 1) {
-          window.clearInterval(timer);
-
-          window.setTimeout(() => {
-            router.replace(`/vehicles/${encodeURIComponent(vehicle)}`);
-          }, 700);
-
           return currentStep;
         }
 
@@ -42,16 +83,64 @@ function AnalyzeContent() {
       });
     }, STEP_DURATION);
 
-    return () => window.clearInterval(timer);
+    return () => {
+      cancelled = true;
+      window.clearInterval(progressTimer);
+    };
   }, [router, vehicle]);
 
-  const completedSteps = Math.min(
-    activeStep,
-    analysisSteps.length - 1,
-  );
+  if (state !== "analyzing") {
+    return (
+      <main className="min-h-screen bg-white text-zinc-950">
+        <header className="border-b border-zinc-200">
+          <div className="mx-auto flex h-16 max-w-7xl items-center px-6 lg:px-8">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-950 text-white">
+                <ShieldCheck className="h-5 w-5" />
+              </div>
+
+              <span className="text-lg font-semibold tracking-tight">
+                VehicleTrust AI
+              </span>
+            </div>
+          </div>
+        </header>
+
+        <section className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-6 py-20">
+          <div className="w-full max-w-lg text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-100">
+              <AlertCircle className="h-7 w-7 text-zinc-700" />
+            </div>
+
+            <p className="mt-8 text-sm font-semibold uppercase tracking-[0.16em] text-zinc-500">
+              Vehicle analysis
+            </p>
+
+            <h1 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              {state === "not_found"
+                ? "Vehicle not found"
+                : "Analysis unavailable"}
+            </h1>
+
+            <p className="mx-auto mt-5 max-w-md text-base leading-7 text-zinc-600">
+              {errorMessage}
+            </p>
+
+            <button
+              type="button"
+              onClick={() => router.push("/")}
+              className="mt-8 inline-flex h-11 items-center justify-center rounded-xl bg-zinc-950 px-6 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+            >
+              Analyze another vehicle
+            </button>
+          </div>
+        </section>
+      </main>
+    );
+  }
 
   const progress =
-    ((completedSteps + 1) / analysisSteps.length) * 100;
+    ((activeStep + 1) / analysisSteps.length) * 100;
 
   return (
     <main className="min-h-screen bg-white text-zinc-950">
@@ -85,8 +174,8 @@ function AnalyzeContent() {
             </h1>
 
             <p className="mx-auto mt-5 max-w-xl text-lg leading-8 text-zinc-600">
-              We are validating the vehicle and evaluating the signals that
-              matter before a purchase decision.
+              We are validating the vehicle and evaluating the signals
+              that matter before a purchase decision.
             </p>
           </div>
 
@@ -105,7 +194,7 @@ function AnalyzeContent() {
 
             <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-zinc-200">
               <div
-                className="h-full rounded-full bg-zinc-950 transition-all duration-700"
+                className="h-full rounded-full bg-zinc-950 transition-all duration-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
@@ -116,7 +205,10 @@ function AnalyzeContent() {
                 const active = index === activeStep;
 
                 return (
-                  <div key={step} className="flex items-center gap-3">
+                  <div
+                    key={step}
+                    className="flex items-center gap-3"
+                  >
                     {completed ? (
                       <CheckCircle2 className="h-5 w-5 shrink-0 text-emerald-600" />
                     ) : active ? (
