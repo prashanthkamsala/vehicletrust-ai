@@ -14,7 +14,7 @@ class AIServiceClient:
     def __init__(
         self,
         *,
-        base_url: str = "http://127.0.0.1:8001",
+        base_url: str = "http://127.0.0.1:8100",
         timeout: float = 120.0,
     ) -> None:
         self.base_url = base_url.rstrip("/")

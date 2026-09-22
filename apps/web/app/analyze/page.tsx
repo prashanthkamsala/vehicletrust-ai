@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { CheckCircle2, ShieldCheck } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -13,7 +13,7 @@ const analysisSteps = [
 
 const STEP_DURATION = 900;
 
-export default function AnalyzePage() {
+function AnalyzeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const vehicle = searchParams.get("vehicle");
@@ -45,7 +45,11 @@ export default function AnalyzePage() {
     return () => window.clearInterval(timer);
   }, [router, vehicle]);
 
-  const completedSteps = Math.min(activeStep, analysisSteps.length - 1);
+  const completedSteps = Math.min(
+    activeStep,
+    analysisSteps.length - 1,
+  );
+
   const progress =
     ((completedSteps + 1) / analysisSteps.length) * 100;
 
@@ -142,5 +146,31 @@ export default function AnalyzePage() {
         </div>
       </section>
     </main>
+  );
+}
+
+function AnalyzeLoading() {
+  return (
+    <main className="min-h-screen bg-white text-zinc-950">
+      <section className="flex min-h-screen items-center justify-center px-6">
+        <div className="text-center">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-zinc-950 text-white">
+            <ShieldCheck className="h-7 w-7" />
+          </div>
+
+          <p className="mt-6 text-sm font-medium text-zinc-600">
+            Preparing vehicle analysis…
+          </p>
+        </div>
+      </section>
+    </main>
+  );
+}
+
+export default function AnalyzePage() {
+  return (
+    <Suspense fallback={<AnalyzeLoading />}>
+      <AnalyzeContent />
+    </Suspense>
   );
 }
