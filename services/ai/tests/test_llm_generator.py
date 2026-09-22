@@ -125,11 +125,12 @@ def build_valid_response() -> str:
     return json.dumps(
         {
             "summary": (
-                "The vehicle has an odometer inconsistency requiring "
-                "verification."
+                "The vehicle has a conflicting odometer history "
+                "requiring verification."
             ),
             "reasoning": (
-                "The mileage history contains a chronological decrease."
+                "The mileage history contains a chronological decrease, "
+                "so the odometer record cannot be treated as consistent."
             ),
             "recommendation": (
                 "The deterministic decision is avoid until the mileage "
@@ -149,10 +150,11 @@ def test_llm_generator_builds_prompt_and_parses_response():
     )
 
     assert result.summary == (
-        "The vehicle has an odometer inconsistency requiring verification."
+    "The vehicle has a conflicting odometer history requiring verification."
     )
     assert result.reasoning == (
-        "The mileage history contains a chronological decrease."
+    "The mileage history contains a chronological decrease, "
+    "so the odometer record cannot be treated as consistent."
     )
     assert result.recommendation == (
         "The deterministic decision is avoid until the mileage history "
