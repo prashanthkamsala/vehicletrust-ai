@@ -1,3 +1,5 @@
+from unittest import result
+
 from app.intelligence.evidence.engine import build_evidence
 from app.intelligence.risk.engine import build_risks
 from app.intelligence.trust.engine import build_trust_assessment
@@ -9,9 +11,12 @@ provider = MockIndiaProvider()
 
 
 def _build_vehicle_trust(registration: str):
-    vehicle_data = provider.get_vehicle_by_registration(registration)
+    result = provider.get_vehicle_by_registration(registration)
 
-    assert vehicle_data is not None
+    assert result.is_success
+    assert result.vehicle is not None
+
+    vehicle_data = result.vehicle
 
     evidence = build_evidence(vehicle_data)
     risks = build_risks(evidence)

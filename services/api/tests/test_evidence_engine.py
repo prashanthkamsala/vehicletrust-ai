@@ -1,3 +1,5 @@
+from unittest import result
+
 from app.intelligence.evidence.engine import build_evidence
 from app.providers.mock_india import MockIndiaProvider
 
@@ -6,9 +8,11 @@ provider = MockIndiaProvider()
 
 
 def test_clean_vehicle_produces_verified_evidence() -> None:
-    vehicle = provider.get_vehicle_by_registration("KA 05 MN 4821")
+    result = provider.get_vehicle_by_registration("KA 05 MN 4821")
+    assert result.status.value == "found"
+    assert result.vehicle is not None
 
-    assert vehicle is not None
+    vehicle = result.vehicle
 
     evidence = build_evidence(vehicle)
 
@@ -23,9 +27,12 @@ def test_clean_vehicle_produces_verified_evidence() -> None:
 
 
 def test_moderate_vehicle_produces_review_signals() -> None:
-    vehicle = provider.get_vehicle_by_registration("TS 09 PQ 7316")
+    result = provider.get_vehicle_by_registration("TS 09 PQ 7316")
+    assert result.status.value == "found"
+    assert result.vehicle is not None
 
-    assert vehicle is not None
+    vehicle = result.vehicle
+
 
     evidence = build_evidence(vehicle)
 
@@ -40,9 +47,11 @@ def test_moderate_vehicle_produces_review_signals() -> None:
 
 
 def test_high_risk_vehicle_detects_odometer_conflict() -> None:
-    vehicle = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    result = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    assert result.status.value == "found"
+    assert result.vehicle is not None
 
-    assert vehicle is not None
+    vehicle = result.vehicle
 
     evidence = build_evidence(vehicle)
 
@@ -57,9 +66,11 @@ def test_high_risk_vehicle_detects_odometer_conflict() -> None:
 
 
 def test_high_risk_vehicle_detects_major_accident() -> None:
-    vehicle = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    result = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    assert result.status.value == "found"
+    assert result.vehicle is not None
 
-    assert vehicle is not None
+    vehicle = result.vehicle
 
     evidence = build_evidence(vehicle)
 
@@ -72,9 +83,13 @@ def test_high_risk_vehicle_detects_major_accident() -> None:
 
 
 def test_high_risk_vehicle_detects_open_challans() -> None:
-    vehicle = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    result = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    assert result.status.value == "found"
+    assert result.vehicle is not None
 
-    assert vehicle is not None
+    vehicle = result.vehicle
+
+    evidence = build_evidence(vehicle)
 
     evidence = build_evidence(vehicle)
 

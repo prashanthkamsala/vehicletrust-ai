@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from app.schemas.vehicle.models import VehicleData
+from app.providers.contracts import ProviderResult
 
 
 class VehicleDataProvider(ABC):
@@ -10,6 +10,6 @@ class VehicleDataProvider(ABC):
     def get_vehicle_by_registration(
         self,
         registration: str,
-    ) -> VehicleData | None:
-        """Return vehicle data for a registration number."""
+    ) -> ProviderResult:
+        """Return a normalized provider result for a registration number."""
         raise NotImplementedError

@@ -1,12 +1,18 @@
+from app.providers.contracts import ProviderStatus
 from app.providers.mock_india import MockIndiaProvider
 
 
 def test_mock_provider_returns_clean_vehicle() -> None:
     provider = MockIndiaProvider()
 
-    vehicle = provider.get_vehicle_by_registration("KA 05 MN 4821")
+    result = provider.get_vehicle_by_registration("KA 05 MN 4821")
 
-    assert vehicle is not None
+    assert result.status is ProviderStatus.FOUND
+    assert result.is_success
+    assert result.vehicle is not None
+
+    vehicle = result.vehicle
+
     assert vehicle.registration is not None
     assert vehicle.registration.registration_number == "KA 05 MN 4821"
     assert vehicle.manufacturer is not None
@@ -18,19 +24,24 @@ def test_mock_provider_returns_clean_vehicle() -> None:
 def test_mock_provider_normalizes_registration() -> None:
     provider = MockIndiaProvider()
 
-    vehicle = provider.get_vehicle_by_registration("ka 05 mn 4821")
+    result = provider.get_vehicle_by_registration("ka 05 mn 4821")
 
-    assert vehicle is not None
-    assert vehicle.registration is not None
-    assert vehicle.registration.registration_number == "KA 05 MN 4821"
+    assert result.status is ProviderStatus.FOUND
+    assert result.vehicle is not None
+    assert result.vehicle.registration is not None
+    assert result.vehicle.registration.registration_number == "KA 05 MN 4821"
 
 
 def test_mock_provider_returns_moderate_risk_vehicle() -> None:
     provider = MockIndiaProvider()
 
-    vehicle = provider.get_vehicle_by_registration("TS 09 PQ 7316")
+    result = provider.get_vehicle_by_registration("TS 09 PQ 7316")
 
-    assert vehicle is not None
+    assert result.status is ProviderStatus.FOUND
+    assert result.vehicle is not None
+
+    vehicle = result.vehicle
+
     assert len(vehicle.ownership) == 2
     assert vehicle.insurance is not None
     assert vehicle.insurance.status == "active"
@@ -42,9 +53,13 @@ def test_mock_provider_returns_moderate_risk_vehicle() -> None:
 def test_mock_provider_returns_high_risk_vehicle() -> None:
     provider = MockIndiaProvider()
 
-    vehicle = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    result = provider.get_vehicle_by_registration("MH 12 XY 9087")
 
-    assert vehicle is not None
+    assert result.status is ProviderStatus.FOUND
+    assert result.vehicle is not None
+
+    vehicle = result.vehicle
+
     assert len(vehicle.ownership) == 3
     assert vehicle.finance is not None
     assert vehicle.finance.status == "active"
@@ -54,9 +69,12 @@ def test_mock_provider_returns_high_risk_vehicle() -> None:
     assert len(vehicle.challans) == 2
 
 
-def test_mock_provider_returns_none_for_unknown_registration() -> None:
+def test_mock_provider_returns_not_found_for_unknown_registration() -> None:
     provider = MockIndiaProvider()
 
-    vehicle = provider.get_vehicle_by_registration("KA 00 ZZ 0000")
+    result = provider.get_vehicle_by_registration("KA 00 ZZ 0000")
 
-    assert vehicle is None
+    assert result.status is ProviderStatus.NOT_FOUND
+    assert not result.is_success
+    assert result.vehicle is None
+    assert result.message is not None

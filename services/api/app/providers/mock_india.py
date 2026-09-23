@@ -1,4 +1,5 @@
 from app.providers.base import VehicleDataProvider
+from app.providers.contracts import ProviderResult, ProviderStatus
 from app.schemas.vehicle.models import (
     AccidentRecord,
     ChallanRecord,
@@ -24,7 +25,7 @@ class MockIndiaProvider(VehicleDataProvider):
     def get_vehicle_by_registration(
         self,
         registration: str,
-    ) -> VehicleData | None:
+    ) -> ProviderResult:
         normalized_registration = " ".join(
             registration.strip().upper().split()
         )
@@ -32,9 +33,15 @@ class MockIndiaProvider(VehicleDataProvider):
         vehicle = self._vehicles.get(normalized_registration)
 
         if vehicle is None:
-            return None
+            return ProviderResult(
+                status=ProviderStatus.NOT_FOUND,
+                message="Vehicle was not found for the supplied registration.",
+            )
 
-        return vehicle
+        return ProviderResult(
+            status=ProviderStatus.FOUND,
+            vehicle=vehicle,
+        )
 
     def _build_vehicles(self) -> dict[str, VehicleData]:
         return {
