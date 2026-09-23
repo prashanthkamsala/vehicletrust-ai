@@ -1,3 +1,5 @@
+from unittest import result
+
 from app.intelligence.evidence.engine import build_evidence
 from app.intelligence.risk.engine import build_risks
 from app.providers.mock_india import MockIndiaProvider
@@ -7,9 +9,12 @@ provider = MockIndiaProvider()
 
 
 def _build_vehicle_risks(registration: str):
-    vehicle = provider.get_vehicle_by_registration(registration)
+    result = provider.get_vehicle_by_registration(registration)
 
-    assert vehicle is not None
+    assert result.is_success
+    assert result.vehicle is not None
+
+    vehicle = result.vehicle
 
     evidence = build_evidence(vehicle)
 
@@ -52,13 +57,15 @@ def test_high_risk_vehicle_derives_all_expected_risks() -> None:
 
 
 def test_high_risk_risks_are_traceable_to_evidence() -> None:
-    vehicle = provider.get_vehicle_by_registration("MH 12 XY 9087")
+    result = provider.get_vehicle_by_registration("MH 12 XY 9087")
 
-    assert vehicle is not None
+    assert result.is_success
+    assert result.vehicle is not None
+
+    vehicle = result.vehicle
 
     evidence = build_evidence(vehicle)
     risks = build_risks(evidence)
-
     evidence_ids = {item.id for item in evidence}
 
     assert len(risks) > 0

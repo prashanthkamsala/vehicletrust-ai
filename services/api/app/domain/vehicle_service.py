@@ -47,7 +47,12 @@ def get_vehicle_by_registration(
 def _build_vehicle_from_registration(
     registration: str,
 ) -> VehicleIntelligence | None:
-    vehicle_data = _provider.get_vehicle_by_registration(registration)
+    provider_result = _provider.get_vehicle_by_registration(registration)
+
+    if not provider_result.is_success:
+        return None
+
+    vehicle_data = provider_result.vehicle
 
     if vehicle_data is None:
         return None
