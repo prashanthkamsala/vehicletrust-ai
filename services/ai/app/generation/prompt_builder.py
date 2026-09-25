@@ -41,15 +41,23 @@ Rules:
     or conditions.
 16. The trust score, risks, and purchase decision are deterministic outputs.
 17. Do not recalculate, modify, override, or contradict the trust score.
-18. Do not recalculate, add, remove, or change risk severity.
+    Do not reinterpret the deterministic trust score.
+18. Do not recalculate, add, remove, or change risk severity or risk status.
 19. Do not change the deterministic purchase decision.
-20. Treat conflicting evidence as an evidence issue requiring verification.
-21. If evidence is insufficient, explicitly say that additional verification is required.
-22. Do not claim fraud, tampering, mechanical failure, structural damage, or other
+20. The value of the "recommendation" field must preserve the deterministic
+    decision exactly as supplied in VEHICLE INTELLIGENCE:
+    "buy", "review", "avoid", or "insufficient_evidence".
+21. The recommendation text must explain why the supplied deterministic
+    decision applies, using only the supplied vehicle evidence and risks.
+22. Treat conflicting evidence as an evidence issue requiring verification.
+23. If evidence is insufficient, explicitly say that additional verification is required.
+24. Do not claim fraud, tampering, mechanical failure, structural damage, or other
     conclusions unless the supplied evidence explicitly establishes them.
-23. The recommendation must explain the supplied deterministic decision rather than
-    creating a new decision.
-24. Keep the response concise and focused on the vehicle's actual evidence and risks.
+25. Do not invent vehicle facts, events, measurements, dates, causes, or conditions.
+26. Do not use retrieved domain guidance to create a new vehicle-specific fact.
+27. Do not use hypothetical examples or possible causes from domain guidance
+    as if they occurred on this vehicle.
+28. Keep the response concise and focused on the vehicle's actual evidence and risks.
 
 Return a JSON object with exactly these fields:
 {

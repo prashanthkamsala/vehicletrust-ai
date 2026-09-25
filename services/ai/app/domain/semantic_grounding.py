@@ -46,7 +46,7 @@ def _validate_evidence_statuses(
     recommendation: str,
     request: AIRequest,
 ) -> None:
-    sentences = _sentences(
+    clauses = _sentences(
         summary=summary,
         reasoning=reasoning,
         recommendation=recommendation,
@@ -55,14 +55,23 @@ def _validate_evidence_statuses(
     for evidence in request.evidence:
         subject_terms = _evidence_terms(evidence)
 
-        for sentence in sentences:
-            if not _contains_any(sentence, subject_terms):
+        for clause in clauses:
+            if not _contains_any(clause, subject_terms):
                 continue
+
+            evidence_scoped_clause = _scope_clause_to_evidence(
+                clause=clause,
+                evidence=evidence,
+                all_evidence=request.evidence,
+            )
 
             if evidence.status == "verified":
                 if _contains_any(
-                    sentence,
-                    {"conflicting", "inconsistent"},
+                    evidence_scoped_clause,
+                    {
+                        "conflicting",
+                        "inconsistent",
+                    },
                 ):
                     raise SemanticGroundingError(
                         f"{evidence.id} is verified but was described "
@@ -71,7 +80,7 @@ def _validate_evidence_statuses(
 
             elif evidence.status == "conflicting":
                 if _contains_asserted_status(
-                    sentence,
+                    evidence_scoped_clause,
                     {
                         "verified",
                         "consistent",
@@ -82,6 +91,39 @@ def _validate_evidence_statuses(
                         f"{evidence.id} is conflicting but was described "
                         "as verified or consistent."
                     )
+
+
+def _scope_clause_to_evidence(
+    *,
+    clause: str,
+    evidence,
+    all_evidence,
+) -> str:
+    """
+    Remove subject terms belonging to other evidence items before
+    validating the status of the current evidence.
+
+    This prevents claims about one evidence item from being
+    incorrectly attributed to another evidence item in the same
+    sentence or clause.
+    """
+
+    scoped = clause
+
+    for other_evidence in all_evidence:
+        if other_evidence.id == evidence.id:
+            continue
+
+        for term in _evidence_terms(other_evidence):
+            if not term:
+                continue
+
+            scoped = scoped.replace(
+                term,
+                " ",
+            )
+
+    return _normalize(scoped)
 
 
 def _validate_risk_severities(
@@ -228,8 +270,7 @@ def _validate_unsupported_claims(
     for claim_type, terms in unsupported_claims.items():
         if _contains_any(text, terms):
             raise SemanticGroundingError(
-                f"unsupported {claim_type} claim detected in "
-                "vehicle explanation."
+                f"unsupported {claim_type} claim detected in " "vehicle explanation."
             )
 
 
@@ -330,20 +371,55 @@ def _sentences(
         ]
     )
 
-    sentences: list[str] = []
+    clauses: list[str] = []
 
     for sentence in re.split(r"[.!?]+", text):
-        for clause in re.split(
+        sentence = sentence.strip()
+
+        if not sentence:
+            continue
+
+        # First split explicit contrast/concession clauses.
+        parts = re.split(
             r"\b(?:while|although|whereas|but)\b",
             sentence,
             flags=re.IGNORECASE,
-        ):
-            normalized = _normalize(clause)
+        )
 
-            if normalized:
-                sentences.append(normalized)
+        for part in parts:
+            part = part.strip()
 
-    return sentences
+            if not part:
+                continue
+
+            # Split independent claims introduced after a comma.
+            #
+            # Example:
+            #
+            #   "odometer requires verification,
+            #    the major accident is confirmed"
+            #
+            # becomes:
+            #
+            #   "odometer requires verification"
+            #   "the major accident is confirmed"
+            #
+            # We intentionally require the new clause to start with
+            # an article/pronoun so normal comma-separated wording
+            # remains intact.
+            subclauses = re.split(
+                r",\s+(?=(?:the|this|that|an|a)\b)"
+                r"|\s+\band\b\s+(?=(?:the|this|that|an|a)\b)",
+                part,
+                flags=re.IGNORECASE,
+            )
+            for subclause in subclauses:
+                normalized = _normalize(subclause)
+
+                if normalized:
+                    clauses.append(normalized)
+
+    return clauses
 
 
 def _contains_any(
@@ -440,10 +516,7 @@ def _is_future_or_conditional_status(
         f"before the odometer history is {term}",
     }
 
-    return any(
-        pattern in text
-        for pattern in conditional_patterns
-    )
+    return any(pattern in text for pattern in conditional_patterns)
 
 
 def _normalize(value: str) -> str:

@@ -381,3 +381,82 @@ def test_cautious_explanation_with_explicit_verification_passes() -> None:
         explanation,
         build_request(),
     )
+
+
+def test_conflicting_evidence_is_not_invalidated_by_verified_claim_for_another_evidence() -> None:
+    request = AIRequest(
+        vehicle=AIVehicleIdentity(
+            make="Honda",
+            model="Civic",
+            year=2020,
+            registration="KA 01 AB 7744",
+        ),
+        evidence=[
+            AIEvidenceItem(
+                id="mileage-consistency",
+                category="Mileage",
+                title="Odometer consistency",
+                value="Inconsistent",
+                status="conflicting",
+                confidence="high",
+                explanation="The odometer history contains a decrease.",
+                source=AIEvidenceSource(
+                    id="odometer-history",
+                    name="Vehicle odometer records",
+                    type="service",
+                ),
+                provenance=AIEvidenceProvenance(
+                    observed_at="2026-09-10",
+                ),
+            ),
+            AIEvidenceItem(
+                id="accident-history",
+                category="Accident",
+                title="Major accident history",
+                value="Major accident recorded",
+                status="verified",
+                confidence="high",
+                explanation=(
+                    "A major accident is recorded in the available "
+                    "vehicle history."
+                ),
+                source=AIEvidenceSource(
+                    id="accident-record",
+                    name="Vehicle accident records",
+                    type="service",
+                ),
+                provenance=AIEvidenceProvenance(
+                    observed_at="2026-09-10",
+                ),
+            ),
+        ],
+        risks=[],
+        trust=AITrustAssessment(
+            score=20,
+            confidence="high",
+            assessment="Low trust",
+        ),
+        decision=AIDecisionAssessment(
+            recommendation="avoid",
+            confidence="high",
+            rationale="Multiple high-impact risks require resolution.",
+        ),
+    )
+
+    explanation = LLMExplanation(
+        summary=(
+            "The vehicle has conflicting odometer history and a "
+            "verified major accident record."
+        ),
+        reasoning=(
+            "The odometer inconsistency requires verification due to "
+            "conflicting evidence, the major accident is confirmed by "
+            "verified records."
+        ),
+        recommendation="avoid",
+    )
+
+    validate_semantic_grounding(
+        explanation=explanation,
+        request=request,
+    )
