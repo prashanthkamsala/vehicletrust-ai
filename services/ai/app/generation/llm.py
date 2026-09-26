@@ -1,5 +1,6 @@
 import json
 from typing import Any
+from urllib import request
 
 from pydantic import ValidationError
 
@@ -49,14 +50,19 @@ class LLMGenerator(AIGenerator):
 
         explanation = self._parse_response(raw_response)
 
+        print("\n===== LLM EXPLANATION BEFORE GROUNDING =====")
+        print(explanation.model_dump_json(indent=2))
+        print("===== END LLM EXPLANATION =====\n")
+
         validate_semantic_grounding(
-            explanation,
-            request,
+            explanation=explanation,
+            request=request,
         )
 
         supporting_evidence_ids = self._select_supporting_evidence(
             request,
         )
+
         knowledge_references = self._build_knowledge_references(
             knowledge,
         )
@@ -82,10 +88,14 @@ class LLMGenerator(AIGenerator):
         try:
             payload: Any = json.loads(raw_response)
         except json.JSONDecodeError as exc:
-            raise LLMGenerationError("LLM response was not valid JSON.") from exc
+            raise LLMGenerationError(
+                "LLM response was not valid JSON."
+            ) from exc
 
         if not isinstance(payload, dict):
-            raise LLMGenerationError("LLM response must be a JSON object.")
+            raise LLMGenerationError(
+                "LLM response must be a JSON object."
+            )
 
         try:
             return LLMExplanation.model_validate(payload)

@@ -6,7 +6,7 @@ from app.generation.llm import LLMGenerator
 from app.generation.providers.ollama import OllamaClient
 from app.retrieval.knowledge_retriever import KnowledgeRetriever
 from app.retrieval.local import LocalKeywordRetriever
-
+from app.retrieval.semantic import SemanticRetriever
 
 def _build_knowledge_retriever() -> KnowledgeRetriever:
     """Build the local vehicle knowledge retrieval stack."""
@@ -17,7 +17,8 @@ def _build_knowledge_retriever() -> KnowledgeRetriever:
         / "vehicle"
     )
 
-    retriever = LocalKeywordRetriever(knowledge_dir)
+    local_retriever = LocalKeywordRetriever(knowledge_dir)
+    retriever = SemanticRetriever(local_retriever.documents)
 
     return KnowledgeRetriever(
         retriever,

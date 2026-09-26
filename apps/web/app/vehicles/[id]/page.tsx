@@ -140,14 +140,16 @@ export default async function VehiclePage({
           />
         </div>
 
-        <TrustBreakdown
-          baseScore={vehicle.trust.baseScore}
-          calculatedScore={vehicle.trust.calculatedScore}
-          score={vehicle.trust.score}
-          assessment={vehicle.trust.assessment}
-          confidence={vehicle.trust.confidence}
-          factors={vehicle.trust.factors}
-        />
+        <div className="mt-6">
+          <TrustBreakdown
+            baseScore={vehicle.trust.baseScore}
+            calculatedScore={vehicle.trust.calculatedScore}
+            score={vehicle.trust.score}
+            assessment={vehicle.trust.assessment}
+            confidence={vehicle.trust.confidence}
+            factors={vehicle.trust.factors}
+          />
+        </div>
 
         {vehicle.risks.length > 0 && (
           <section className="mt-6 overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-sm">

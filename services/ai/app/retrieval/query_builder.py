@@ -7,14 +7,18 @@ def build_retrieval_queries(request: AIRequest) -> list[str]:
     queries: list[str] = []
 
     for risk in request.risks:
-        query = _build_risk_query(risk.category, risk.title, risk.explanation)
+        query = _build_risk_query(
+            risk.category,
+            risk.title,
+            risk.explanation,
+        )
         if query and query not in queries:
             queries.append(query)
 
-    if not queries:
-        queries.extend(_build_evidence_queries(request))
+    if queries:
+        return queries
 
-    return queries
+    return _build_evidence_queries(request)
 
 
 def _build_risk_query(

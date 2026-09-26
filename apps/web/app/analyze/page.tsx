@@ -36,7 +36,7 @@ function AnalyzeContent() {
 
     async function analyzeVehicle() {
       try {
-        await getVehicleByRegistration(vehicle!);
+        const vehicleData = await getVehicleByRegistration(vehicle!);
 
         if (cancelled) {
           return;
@@ -44,10 +44,13 @@ function AnalyzeContent() {
 
         setActiveStep(analysisSteps.length - 1);
 
+        const canonicalRegistration =
+          vehicleData.identity.registration;
+
         window.setTimeout(() => {
           if (!cancelled) {
             router.replace(
-              `/vehicles/${encodeURIComponent(vehicle!)}`,
+              `/vehicles/${encodeURIComponent(canonicalRegistration)}`,
             );
           }
         }, 500);
@@ -63,6 +66,8 @@ function AnalyzeContent() {
           );
           return;
         }
+
+        console.error("Vehicle analysis failed:", error);
 
         setState("error");
         setErrorMessage(

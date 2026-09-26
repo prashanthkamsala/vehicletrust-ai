@@ -46,7 +46,7 @@ def _validate_evidence_statuses(
     recommendation: str,
     request: AIRequest,
 ) -> None:
-    sentences = _sentences(
+    clauses = _sentences(
         summary=summary,
         reasoning=reasoning,
         recommendation=recommendation,
@@ -55,14 +55,23 @@ def _validate_evidence_statuses(
     for evidence in request.evidence:
         subject_terms = _evidence_terms(evidence)
 
-        for sentence in sentences:
-            if not _contains_any(sentence, subject_terms):
+        for clause in clauses:
+            if not _contains_any(clause, subject_terms):
                 continue
+
+            evidence_scoped_clause = _scope_clause_to_evidence(
+                clause=clause,
+                evidence=evidence,
+                all_evidence=request.evidence,
+            )
 
             if evidence.status == "verified":
                 if _contains_any(
-                    sentence,
-                    {"conflicting", "inconsistent"},
+                    evidence_scoped_clause,
+                    {
+                        "conflicting",
+                        "inconsistent",
+                    },
                 ):
                     raise SemanticGroundingError(
                         f"{evidence.id} is verified but was described "
@@ -71,7 +80,7 @@ def _validate_evidence_statuses(
 
             elif evidence.status == "conflicting":
                 if _contains_asserted_status(
-                    sentence,
+                    evidence_scoped_clause,
                     {
                         "verified",
                         "consistent",
@@ -82,6 +91,38 @@ def _validate_evidence_statuses(
                         f"{evidence.id} is conflicting but was described "
                         "as verified or consistent."
                     )
+
+
+def _scope_clause_to_evidence(
+    *,
+    clause: str,
+    evidence,
+    all_evidence,
+) -> str:
+    """
+    Keep only the part of a clause that can reasonably be attributed
+    to the current evidence item.
+
+    Evidence validation must not infer that a status word such as
+    "conflicting" applies to every evidence item mentioned in the
+    same sentence.
+    """
+
+    normalized_clause = _normalize(clause)
+
+    current_terms = {
+        term
+        for term in _evidence_terms(evidence)
+        if term
+    }
+
+    # If the current evidence is explicitly mentioned, keep the
+    # original clause. The important part is that _evidence_terms()
+    # contains only strong, evidence-specific terms.
+    if _contains_any(normalized_clause, current_terms):
+        return normalized_clause
+
+    return ""
 
 
 def _validate_risk_severities(
@@ -228,55 +269,91 @@ def _validate_unsupported_claims(
     for claim_type, terms in unsupported_claims.items():
         if _contains_any(text, terms):
             raise SemanticGroundingError(
-                f"unsupported {claim_type} claim detected in "
-                "vehicle explanation."
+                f"unsupported {claim_type} claim detected in " "vehicle explanation."
             )
 
 
 def _evidence_terms(evidence) -> set[str]:
-    terms = {
-        _normalize(evidence.id),
-        _normalize(evidence.category),
-        _normalize(evidence.title),
+    """
+    Return explicit, evidence-specific terms that can identify an
+    evidence item in an LLM-generated explanation.
+
+    Keep these terms narrow. Generic terms such as "vehicle",
+    "record", "details", or "history" can cause false associations
+    between unrelated evidence items.
+    """
+
+    evidence_id = _normalize(evidence.id)
+
+    terms: set[str] = {
+        evidence_id,
     }
 
-    if evidence.id == "insurance-status":
+    if evidence_id == "insurance-status":
         terms.update(
             {
                 "insurance",
                 "insurance record",
                 "insurance status",
+                "insurance coverage",
             }
         )
 
-    elif evidence.id == "mileage-consistency":
+    elif evidence_id == "mileage-consistency":
         terms.update(
             {
                 "odometer",
                 "odometer history",
                 "mileage",
                 "mileage history",
+                "odometer consistency",
             }
         )
 
-    elif evidence.id == "accident-history":
+    elif evidence_id == "accident-history":
         terms.update(
             {
                 "accident",
                 "accident history",
+                "accident record",
+                "accident records",
             }
         )
 
-    elif evidence.id == "finance-status":
+    elif evidence_id == "finance-status":
         terms.update(
             {
                 "finance",
                 "finance status",
                 "finance record",
+                "finance records",
+                "loan",
+                "outstanding finance",
             }
         )
 
-    return terms
+    elif evidence_id == "manufacturer-details":
+        terms.update(
+            {
+                "manufacturer",
+                "make",
+                "model",
+                "model year",
+                "manufacturing",
+            }
+        )
+
+    else:
+        # For unknown evidence types, only use the explicit ID.
+        # Do not automatically add broad category/title phrases,
+        # because they can create false grounding associations.
+        pass
+
+    return {
+        _normalize(term)
+        for term in terms
+        if term
+    }
 
 
 def _risk_terms(risk) -> set[str]:
@@ -330,20 +407,55 @@ def _sentences(
         ]
     )
 
-    sentences: list[str] = []
+    clauses: list[str] = []
 
     for sentence in re.split(r"[.!?]+", text):
-        for clause in re.split(
+        sentence = sentence.strip()
+
+        if not sentence:
+            continue
+
+        # First split explicit contrast/concession clauses.
+        parts = re.split(
             r"\b(?:while|although|whereas|but)\b",
             sentence,
             flags=re.IGNORECASE,
-        ):
-            normalized = _normalize(clause)
+        )
 
-            if normalized:
-                sentences.append(normalized)
+        for part in parts:
+            part = part.strip()
 
-    return sentences
+            if not part:
+                continue
+
+            # Split independent claims introduced after a comma.
+            #
+            # Example:
+            #
+            #   "odometer requires verification,
+            #    the major accident is confirmed"
+            #
+            # becomes:
+            #
+            #   "odometer requires verification"
+            #   "the major accident is confirmed"
+            #
+            # We intentionally require the new clause to start with
+            # an article/pronoun so normal comma-separated wording
+            # remains intact.
+            subclauses = re.split(
+                r",\s+(?=(?:the|this|that|an|a)\b)"
+                r"|\s+\band\b\s+(?=(?:the|this|that|an|a)\b)",
+                part,
+                flags=re.IGNORECASE,
+            )
+            for subclause in subclauses:
+                normalized = _normalize(subclause)
+
+                if normalized:
+                    clauses.append(normalized)
+
+    return clauses
 
 
 def _contains_any(
@@ -440,10 +552,7 @@ def _is_future_or_conditional_status(
         f"before the odometer history is {term}",
     }
 
-    return any(
-        pattern in text
-        for pattern in conditional_patterns
-    )
+    return any(pattern in text for pattern in conditional_patterns)
 
 
 def _normalize(value: str) -> str:
