@@ -100,30 +100,29 @@ def _scope_clause_to_evidence(
     all_evidence,
 ) -> str:
     """
-    Remove subject terms belonging to other evidence items before
-    validating the status of the current evidence.
+    Keep only the part of a clause that can reasonably be attributed
+    to the current evidence item.
 
-    This prevents claims about one evidence item from being
-    incorrectly attributed to another evidence item in the same
-    sentence or clause.
+    Evidence validation must not infer that a status word such as
+    "conflicting" applies to every evidence item mentioned in the
+    same sentence.
     """
 
-    scoped = clause
+    normalized_clause = _normalize(clause)
 
-    for other_evidence in all_evidence:
-        if other_evidence.id == evidence.id:
-            continue
+    current_terms = {
+        term
+        for term in _evidence_terms(evidence)
+        if term
+    }
 
-        for term in _evidence_terms(other_evidence):
-            if not term:
-                continue
+    # If the current evidence is explicitly mentioned, keep the
+    # original clause. The important part is that _evidence_terms()
+    # contains only strong, evidence-specific terms.
+    if _contains_any(normalized_clause, current_terms):
+        return normalized_clause
 
-            scoped = scoped.replace(
-                term,
-                " ",
-            )
-
-    return _normalize(scoped)
+    return ""
 
 
 def _validate_risk_severities(
@@ -275,49 +274,86 @@ def _validate_unsupported_claims(
 
 
 def _evidence_terms(evidence) -> set[str]:
-    terms = {
-        _normalize(evidence.id),
-        _normalize(evidence.category),
-        _normalize(evidence.title),
+    """
+    Return explicit, evidence-specific terms that can identify an
+    evidence item in an LLM-generated explanation.
+
+    Keep these terms narrow. Generic terms such as "vehicle",
+    "record", "details", or "history" can cause false associations
+    between unrelated evidence items.
+    """
+
+    evidence_id = _normalize(evidence.id)
+
+    terms: set[str] = {
+        evidence_id,
     }
 
-    if evidence.id == "insurance-status":
+    if evidence_id == "insurance-status":
         terms.update(
             {
                 "insurance",
                 "insurance record",
                 "insurance status",
+                "insurance coverage",
             }
         )
 
-    elif evidence.id == "mileage-consistency":
+    elif evidence_id == "mileage-consistency":
         terms.update(
             {
                 "odometer",
                 "odometer history",
                 "mileage",
                 "mileage history",
+                "odometer consistency",
             }
         )
 
-    elif evidence.id == "accident-history":
+    elif evidence_id == "accident-history":
         terms.update(
             {
                 "accident",
                 "accident history",
+                "accident record",
+                "accident records",
             }
         )
 
-    elif evidence.id == "finance-status":
+    elif evidence_id == "finance-status":
         terms.update(
             {
                 "finance",
                 "finance status",
                 "finance record",
+                "finance records",
+                "loan",
+                "outstanding finance",
             }
         )
 
-    return terms
+    elif evidence_id == "manufacturer-details":
+        terms.update(
+            {
+                "manufacturer",
+                "make",
+                "model",
+                "model year",
+                "manufacturing",
+            }
+        )
+
+    else:
+        # For unknown evidence types, only use the explicit ID.
+        # Do not automatically add broad category/title phrases,
+        # because they can create false grounding associations.
+        pass
+
+    return {
+        _normalize(term)
+        for term in terms
+        if term
+    }
 
 
 def _risk_terms(risk) -> set[str]:

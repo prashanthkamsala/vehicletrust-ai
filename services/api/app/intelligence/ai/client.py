@@ -1,3 +1,5 @@
+import os
+
 import httpx
 
 from app.intelligence.ai.contracts import AIRequest
@@ -14,10 +16,17 @@ class AIServiceClient:
     def __init__(
         self,
         *,
-        base_url: str = "http://127.0.0.1:8001",
+        base_url: str | None = None,
         timeout: float = 120.0,
     ) -> None:
-        self.base_url = base_url.rstrip("/")
+        self.base_url = (
+            base_url
+            or os.getenv(
+                "AI_SERVICE_BASE_URL",
+                "http://127.0.0.1:8100",
+            )
+        ).rstrip("/")
+
         self.timeout = timeout
 
     def interpret(self, request: AIRequest) -> AIInterpretation:
